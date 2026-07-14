@@ -13,7 +13,6 @@ from typing import Any, Callable
 import pandas as pd
 
 
-
 class Developer:
     """Flowshift **Developer** tool palette.
 
@@ -45,6 +44,7 @@ class Developer:
             >>> df = Developer.base64_encode(df, "Password")
         """
         from flowshift._config import get_engine
+
         return get_engine().base64_encode(df, column, output_column)
 
     # ------------------------------------------------------------------ #
@@ -71,6 +71,7 @@ class Developer:
             >>> df = Developer.base64_decode(df, "Password_Base64")
         """
         from flowshift._config import get_engine
+
         return get_engine().base64_decode(df, column, output_column)
 
     # ------------------------------------------------------------------ #
@@ -102,6 +103,7 @@ class Developer:
             >>> df = Developer.download("https://api.example.com/data")
         """
         from flowshift._config import get_engine
+
         return get_engine().download(url, params, output_column)
 
     # ------------------------------------------------------------------ #
@@ -122,6 +124,7 @@ class Developer:
             >>> schema = Developer.column_info(df)
         """
         from flowshift._config import get_engine
+
         return get_engine().column_info(df)
 
     # ------------------------------------------------------------------ #
@@ -156,6 +159,7 @@ class Developer:
             >>> df = Developer.dynamic_rename(df, mapping)
         """
         from flowshift._config import get_engine
+
         return get_engine().dynamic_rename(df, rename_df, key_col, new_name_col, mode)
 
     # ------------------------------------------------------------------ #
@@ -181,6 +185,7 @@ class Developer:
             >>> df = Developer.json_parse(df, "JSON_Data")
         """
         from flowshift._config import get_engine
+
         return get_engine().json_parse(df, column, prefix)
 
     # ------------------------------------------------------------------ #
@@ -209,6 +214,7 @@ class Developer:
             >>> df_sales = Developer.dynamic_select(df, pattern="^Sales_")
         """
         from flowshift._config import get_engine
+
         return get_engine().dynamic_select(df, dtype_include, dtype_exclude, pattern)
 
     # ------------------------------------------------------------------ #
@@ -239,6 +245,7 @@ class Developer:
             >>> Developer.test(df, lambda d: d["Sales"].sum() > 0, "No sales!")
         """
         from flowshift._config import get_engine
+
         return get_engine().test(df, condition_func, error_msg)
 
     # ------------------------------------------------------------------ #
@@ -266,4 +273,5 @@ class Developer:
             >>> Developer.test_equal(df1, df2)
         """
         from flowshift._config import get_engine
+
         return get_engine().test_equal(df_left, df_right, **kwargs)

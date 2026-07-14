@@ -40,25 +40,30 @@ import flowshift
 #  Shared fixtures
 # ====================================================================== #
 
+
 @pytest.fixture
 def basic_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "ID": [1, 2, 3, 4, 5],
-        "Name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
-        "Age": [30, 25, 35, 28, 32],
-        "City": ["New York", "Boston", "Chicago", "Boston", "New York"],
-        "Salary": [70000, 55000, 85000, 62000, 78000],
-    })
+    return pd.DataFrame(
+        {
+            "ID": [1, 2, 3, 4, 5],
+            "Name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
+            "Age": [30, 25, 35, 28, 32],
+            "City": ["New York", "Boston", "Chicago", "Boston", "New York"],
+            "Salary": [70000, 55000, 85000, 62000, 78000],
+        }
+    )
 
 
 @pytest.fixture
 def nulls_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "ID": [1, 2, 3, 4, 5],
-        "Name": ["Alice", None, "Charlie", "Diana", None],
-        "Age": [30, 25, None, 28, 32],
-        "Score": [95.5, None, 88.0, None, 72.5],
-    })
+    return pd.DataFrame(
+        {
+            "ID": [1, 2, 3, 4, 5],
+            "Name": ["Alice", None, "Charlie", "Diana", None],
+            "Age": [30, 25, None, 28, 32],
+            "Score": [95.5, None, 88.0, None, 72.5],
+        }
+    )
 
 
 @pytest.fixture
@@ -73,86 +78,105 @@ def single_row_df() -> pd.DataFrame:
 
 @pytest.fixture
 def dates_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "ID": [1, 2, 3],
-        "DateStr": ["01/15/2023", "02/20/2023", "03/25/2023"],
-    })
+    return pd.DataFrame(
+        {
+            "ID": [1, 2, 3],
+            "DateStr": ["01/15/2023", "02/20/2023", "03/25/2023"],
+        }
+    )
 
 
 @pytest.fixture
 def sales_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "Region": ["East", "East", "West", "West", "East"],
-        "Quarter": ["Q1", "Q2", "Q1", "Q2", "Q1"],
-        "Revenue": [100, 200, 150, 250, 300],
-        "Quantity": [10, 20, 15, 25, 30],
-    })
+    return pd.DataFrame(
+        {
+            "Region": ["East", "East", "West", "West", "East"],
+            "Quarter": ["Q1", "Q2", "Q1", "Q2", "Q1"],
+            "Revenue": [100, 200, 150, 250, 300],
+            "Quantity": [10, 20, 15, 25, 30],
+        }
+    )
 
 
 @pytest.fixture
 def left_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "CustomerID": [1, 2, 3, 4],
-        "Name": ["Alice", "Bob", "Charlie", "Diana"],
-    })
+    return pd.DataFrame(
+        {
+            "CustomerID": [1, 2, 3, 4],
+            "Name": ["Alice", "Bob", "Charlie", "Diana"],
+        }
+    )
 
 
 @pytest.fixture
 def right_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "CustomerID": [2, 3, 5],
-        "OrderTotal": [150.00, 200.00, 95.00],
-    })
+    return pd.DataFrame(
+        {
+            "CustomerID": [2, 3, 5],
+            "OrderTotal": [150.00, 200.00, 95.00],
+        }
+    )
 
 
 @pytest.fixture
 def spaced_cols_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "First Name": ["Alice", "Bob"],
-        "Last Name": ["Smith", "Jones"],
-        "Total Sales": [100.0, 200.0],
-    })
+    return pd.DataFrame(
+        {
+            "First Name": ["Alice", "Bob"],
+            "Last Name": ["Smith", "Jones"],
+            "Total Sales": [100.0, 200.0],
+        }
+    )
 
 
 @pytest.fixture
 def duplicates_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "Email": ["a@b.com", "a@b.com", "c@d.com", "c@d.com", "e@f.com"],
-        "Name": ["Alice", "Alice Dup", "Charlie", "Charlie Dup", "Eve"],
-    })
+    return pd.DataFrame(
+        {
+            "Email": ["a@b.com", "a@b.com", "c@d.com", "c@d.com", "e@f.com"],
+            "Name": ["Alice", "Alice Dup", "Charlie", "Charlie Dup", "Eve"],
+        }
+    )
 
 
 @pytest.fixture
 def xml_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "ID": [1, 2],
-        "XMLData": [
-            '<root><Person name="Alice"><Age>30</Age></Person></root>',
-            '<root><Person name="Bob"><Age>25</Age></Person></root>',
-        ],
-    })
+    return pd.DataFrame(
+        {
+            "ID": [1, 2],
+            "XMLData": [
+                '<root><Person name="Alice"><Age>30</Age></Person></root>',
+                '<root><Person name="Bob"><Age>25</Age></Person></root>',
+            ],
+        }
+    )
 
 
 @pytest.fixture
 def json_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "ID": [1, 2],
-        "Payload": ['{"city": "NYC", "zip": "10001"}', '{"city": "LA", "zip": "90001"}'],
-    })
+    return pd.DataFrame(
+        {
+            "ID": [1, 2],
+            "Payload": ['{"city": "NYC", "zip": "10001"}', '{"city": "LA", "zip": "90001"}'],
+        }
+    )
 
 
 @pytest.fixture
 def extreme_values_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "BigInt": [2**62, -(2**62), 0],
-        "BigFloat": [1e308, -1e308, 1e-308],
-        "Normal": [1, 2, 3],
-    })
+    return pd.DataFrame(
+        {
+            "BigInt": [2**62, -(2**62), 0],
+            "BigFloat": [1e308, -1e308, 1e-308],
+            "Normal": [1, 2, 3],
+        }
+    )
 
 
 # ====================================================================== #
 #  1. FUNCTIONAL VALIDATION
 # ====================================================================== #
+
 
 class TestFunctionalValidation:
     """Core tool correctness and schema preservation."""
@@ -326,40 +350,29 @@ class TestFunctionalValidation:
         assert "RowNum" in result.columns
 
     def test_generate_rows_with_expression(self) -> None:
-        result = Preparation.generate_rows(3, lambda i: {"x": i, "y": i ** 2})
+        result = Preparation.generate_rows(3, lambda i: {"x": i, "y": i**2})
         assert len(result) == 3
         assert list(result["y"]) == [0, 1, 4]
 
     # --- Summarize ---
     def test_summarize_group_by(self, sales_df: pd.DataFrame) -> None:
-        result = Transform.summarize(
-            sales_df, group_by="Region",
-            aggregations={"Revenue": ["sum", "mean"]}
-        )
+        result = Transform.summarize(sales_df, group_by="Region", aggregations={"Revenue": ["sum", "mean"]})
         assert "Region" in result.columns
         assert len(result) == 2  # East and West
 
     def test_summarize_no_group(self, sales_df: pd.DataFrame) -> None:
-        result = Transform.summarize(
-            sales_df, aggregations={"Revenue": "sum"}
-        )
+        result = Transform.summarize(sales_df, aggregations={"Revenue": "sum"})
         assert len(result) == 1
 
     # --- Transpose ---
     def test_transpose(self, sales_df: pd.DataFrame) -> None:
-        result = Transform.transpose(
-            sales_df, key_columns="Region",
-            data_columns=["Revenue", "Quantity"]
-        )
+        result = Transform.transpose(sales_df, key_columns="Region", data_columns=["Revenue", "Quantity"])
         assert "Name" in result.columns
         assert "Value" in result.columns
 
     # --- Cross Tab ---
     def test_cross_tab(self, sales_df: pd.DataFrame) -> None:
-        result = Transform.cross_tab(
-            sales_df, group_by="Region",
-            pivot_col="Quarter", value_col="Revenue", agg="sum"
-        )
+        result = Transform.cross_tab(sales_df, group_by="Region", pivot_col="Quarter", value_col="Revenue", agg="sum")
         assert "Q1" in result.columns
         assert "Q2" in result.columns
 
@@ -424,14 +437,13 @@ class TestFunctionalValidation:
 #  2. EDGE CASES & ROBUSTNESS
 # ====================================================================== #
 
+
 class TestEdgeCases:
     """Empty datasets, nulls, malformed inputs, extreme values, duplicates."""
 
     # --- Empty DataFrames ---
     def test_filter_empty_df(self, empty_df: pd.DataFrame) -> None:
-        t, f = Preparation.filter(
-            pd.DataFrame({"A": pd.Series(dtype="int64")}), "A > 0"
-        )
+        t, f = Preparation.filter(pd.DataFrame({"A": pd.Series(dtype="int64")}), "A > 0")
         assert len(t) == 0
         assert len(f) == 0
 
@@ -487,15 +499,11 @@ class TestEdgeCases:
         assert result["Score"].isna().sum() == 0
 
     def test_imputation_custom_value(self, nulls_df: pd.DataFrame) -> None:
-        result = Preparation.imputation(
-            nulls_df, "Score", method="value", replacement_value=-1
-        )
+        result = Preparation.imputation(nulls_df, "Score", method="value", replacement_value=-1)
         assert (result["Score"] == -1).sum() == 2
 
     def test_data_cleansing_replace_nulls(self, nulls_df: pd.DataFrame) -> None:
-        result = Preparation.data_cleansing(
-            nulls_df, ["Name"], replace_nulls_with="UNKNOWN"
-        )
+        result = Preparation.data_cleansing(nulls_df, ["Name"], replace_nulls_with="UNKNOWN")
         assert "UNKNOWN" in result["Name"].values
 
     # --- Extreme values ---
@@ -548,9 +556,7 @@ class TestEdgeCases:
 
     # --- Create Samples ---
     def test_create_samples_valid_split(self, basic_df: pd.DataFrame) -> None:
-        est, val, hold = Preparation.create_samples(
-            basic_df, 0.6, 0.2, 0.2, random_state=42
-        )
+        est, val, hold = Preparation.create_samples(basic_df, 0.6, 0.2, 0.2, random_state=42)
         total = len(est) + len(val) + len(hold)
         assert total == len(basic_df)
 
@@ -560,10 +566,12 @@ class TestEdgeCases:
 
     # --- Date Filter ---
     def test_date_filter(self) -> None:
-        df = pd.DataFrame({
-            "Date": pd.to_datetime(["2023-01-15", "2023-06-15", "2023-12-15"]),
-            "Val": [1, 2, 3],
-        })
+        df = pd.DataFrame(
+            {
+                "Date": pd.to_datetime(["2023-01-15", "2023-06-15", "2023-12-15"]),
+                "Val": [1, 2, 3],
+            }
+        )
         t, f = Preparation.date_filter(df, "Date", "2023-02-01", "2023-07-01")
         assert len(t) == 1
         assert len(f) == 2
@@ -579,13 +587,13 @@ class TestEdgeCases:
 
     # --- Oversample ---
     def test_oversample_field(self) -> None:
-        df = pd.DataFrame({
-            "Label": ["A"] * 90 + ["B"] * 10,
-            "Val": range(100),
-        })
-        result = Preparation.oversample_field(
-            df, "Label", "B", target_pct=0.5, random_state=42
+        df = pd.DataFrame(
+            {
+                "Label": ["A"] * 90 + ["B"] * 10,
+                "Val": range(100),
+            }
         )
+        result = Preparation.oversample_field(df, "Label", "B", target_pct=0.5, random_state=42)
         b_count = (result["Label"] == "B").sum()
         total = len(result)
         actual_pct = b_count / total
@@ -603,6 +611,7 @@ class TestEdgeCases:
 # ====================================================================== #
 #  3. PERFORMANCE (Markers only — not run by default)
 # ====================================================================== #
+
 
 class TestPerformance:
     """Performance regression tests. Run with: pytest -m slow"""
@@ -632,10 +641,12 @@ class TestPerformance:
     @pytest.mark.slow
     def test_large_summarize(self) -> None:
         n = 1_000_000
-        df = pd.DataFrame({
-            "Group": np.random.choice(["A", "B", "C", "D"], n),
-            "Value": np.random.rand(n),
-        })
+        df = pd.DataFrame(
+            {
+                "Group": np.random.choice(["A", "B", "C", "D"], n),
+                "Value": np.random.rand(n),
+            }
+        )
         result = Transform.summarize(df, group_by="Group", aggregations={"Value": ["sum", "mean", "count"]})
         assert len(result) == 4
 
@@ -643,6 +654,7 @@ class TestPerformance:
 # ====================================================================== #
 #  4. SECURITY
 # ====================================================================== #
+
 
 class TestSecurity:
     """Injection, RCE vectors, and safe defaults."""
@@ -655,6 +667,7 @@ class TestSecurity:
     def test_yaml_uses_safe_load(self) -> None:
         """Pipeline YAML loading must use safe_load, not load."""
         import inspect
+
         source = inspect.getsource(Pipeline.__init__)
         assert "safe_load" in source
         assert "yaml.load(" not in source or "yaml.safe_load" in source
@@ -662,6 +675,7 @@ class TestSecurity:
     def test_pickle_format_supported(self) -> None:
         """Document that pickle is supported (potential RCE vector)."""
         from flowshift.in_out import _READERS
+
         # This test documents the risk — pickle is currently supported
         assert ".pkl" in _READERS or ".pickle" in _READERS
 
@@ -675,17 +689,11 @@ class TestSecurity:
     def test_pipeline_tool_resolution_scoped(self) -> None:
         """Pipeline should only resolve tools from flowshift module."""
         import yaml
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False, dir=tempfile.gettempdir()
-        ) as f:
-            yaml.dump({
-                "name": "test",
-                "steps": [{
-                    "id": "bad",
-                    "tool": "os.system",
-                    "args": {"command": "echo pwned"}
-                }]
-            }, f)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False, dir=tempfile.gettempdir()) as f:
+            yaml.dump(
+                {"name": "test", "steps": [{"id": "bad", "tool": "os.system", "args": {"command": "echo pwned"}}]}, f
+            )
             temp_path = f.name
 
         try:
@@ -723,6 +731,7 @@ class TestSecurity:
 #  5. DUAL-ENGINE PARITY (Pandas-only verification of parity issues)
 # ====================================================================== #
 
+
 class TestDualEngineParity:
     """Document and test engine-specific behavioral differences."""
 
@@ -747,9 +756,7 @@ class TestDualEngineParity:
 
     def test_multi_field_formula_preserves_type(self, basic_df: pd.DataFrame) -> None:
         """multi_field_formula should preserve the output type in Pandas."""
-        result = Preparation.multi_field_formula(
-            basic_df, ["Age", "Salary"], lambda s: s * 2
-        )
+        result = Preparation.multi_field_formula(basic_df, ["Age", "Salary"], lambda s: s * 2)
         assert result["Age"].dtype in (np.int64, np.int32)
         assert result["Salary"].dtype in (np.int64, np.int32)
 
@@ -758,11 +765,13 @@ class TestDualEngineParity:
 #  6. PACKAGING
 # ====================================================================== #
 
+
 class TestPackaging:
     """Import checks, version, CLI, and module structure."""
 
     def test_import_flowshift(self) -> None:
         import flowshift
+
         assert flowshift is not None
 
     def test_version_exists(self) -> None:
@@ -772,10 +781,12 @@ class TestPackaging:
 
     def test_all_classes_importable(self) -> None:
         from flowshift import InOut, Preparation, Join, Transform, Parse, Developer, Pipeline
+
         assert all([InOut, Preparation, Join, Transform, Parse, Developer, Pipeline])
 
     def test_backend_functions(self) -> None:
         from flowshift import set_backend, get_backend, backend
+
         assert callable(set_backend)
         assert callable(get_backend)
 
@@ -797,6 +808,7 @@ class TestPackaging:
 # ====================================================================== #
 #  7. DOCUMENTATION — README example verification
 # ====================================================================== #
+
 
 class TestDocumentation:
     """Verify that documented examples actually work."""
@@ -826,14 +838,13 @@ class TestDocumentation:
         assert len(J) == 2
 
     def test_readme_summarize(self) -> None:
-        df = InOut.text_input({
-            "Region": ["East", "East", "West"],
-            "Sales": [100, 200, 150],
-        })
-        result = Transform.summarize(
-            df, group_by="Region",
-            aggregations={"Sales": ["sum", "mean"]}
+        df = InOut.text_input(
+            {
+                "Region": ["East", "East", "West"],
+                "Sales": [100, 200, 150],
+            }
         )
+        result = Transform.summarize(df, group_by="Region", aggregations={"Sales": ["sum", "mean"]})
         assert len(result) == 2
 
     def test_yaml_pipeline_execution(self) -> None:
@@ -871,6 +882,7 @@ class TestDocumentation:
 #  PARSE TOOLS
 # ====================================================================== #
 
+
 class TestParseTools:
     """Parse palette tool validation."""
 
@@ -879,9 +891,7 @@ class TestParseTools:
         assert pd.api.types.is_datetime64_any_dtype(result["DateStr"])
 
     def test_date_time_with_output_format(self, dates_df: pd.DataFrame) -> None:
-        result = Parse.date_time(
-            dates_df, "DateStr", input_fmt="%m/%d/%Y", output_fmt="%Y-%m-%d"
-        )
+        result = Parse.date_time(dates_df, "DateStr", input_fmt="%m/%d/%Y", output_fmt="%Y-%m-%d")
         assert result["DateStr"].iloc[0] == "2023-01-15"
 
     def test_regex_match(self) -> None:
@@ -926,16 +936,14 @@ class TestParseTools:
         assert "Person" in result.columns
 
     def test_xml_parse_child_values(self, xml_df: pd.DataFrame) -> None:
-        result = Parse.xml_parse(
-            xml_df, "XMLData", ".//Person", "Person",
-            return_child_values=True
-        )
+        result = Parse.xml_parse(xml_df, "XMLData", ".//Person", "Person", return_child_values=True)
         assert "Person_name" in result.columns or "Person_Age" in result.columns
 
 
 # ====================================================================== #
 #  DEVELOPER TOOLS
 # ====================================================================== #
+
 
 class TestDeveloperTools:
     """Developer palette tool validation."""
@@ -954,10 +962,12 @@ class TestDeveloperTools:
         assert set(info.columns) == {"Name", "Type", "Size", "NonNullCount", "NullCount", "UniqueCount"}
 
     def test_dynamic_rename_mapping(self, basic_df: pd.DataFrame) -> None:
-        mapping = pd.DataFrame({
-            "OldName": ["Name", "Age"],
-            "NewName": ["FullName", "Years"],
-        })
+        mapping = pd.DataFrame(
+            {
+                "OldName": ["Name", "Age"],
+                "NewName": ["FullName", "Years"],
+            }
+        )
         result = Developer.dynamic_rename(basic_df, mapping)
         assert "FullName" in result.columns
         assert "Years" in result.columns
@@ -1002,23 +1012,26 @@ class TestDeveloperTools:
 #  TRANSFORM TOOLS — Advanced
 # ====================================================================== #
 
+
 class TestTransformAdvanced:
     """Advanced transform tool validation."""
 
     def test_arrange(self) -> None:
-        df = pd.DataFrame({
-            "ID": [1, 2],
-            "Home": ["111", "444"],
-            "Work": ["222", "555"],
-            "Cell": ["333", "666"],
-        })
+        df = pd.DataFrame(
+            {
+                "ID": [1, 2],
+                "Home": ["111", "444"],
+                "Work": ["222", "555"],
+                "Cell": ["333", "666"],
+            }
+        )
         result = Transform.arrange(
             df,
             key_columns="ID",
             output_mapping={
                 "Type": ["Home", "Work", "Cell"],
                 "Phone": ["Home", "Work", "Cell"],
-            }
+            },
         )
         # Should have 6 rows (2 IDs × 3 phone types)
         assert len(result) == 6
@@ -1030,31 +1043,35 @@ class TestTransformAdvanced:
         assert len(result) == 2  # 6 items / 3 columns
 
     def test_weighted_average(self) -> None:
-        df = pd.DataFrame({
-            "Score": [80, 90, 100],
-            "Weight": [1, 2, 1],
-        })
+        df = pd.DataFrame(
+            {
+                "Score": [80, 90, 100],
+                "Weight": [1, 2, 1],
+            }
+        )
         result = Transform.weighted_average(df, "Score", "Weight")
         wa = result["WeightedAverage"].iloc[0]
         expected = (80 * 1 + 90 * 2 + 100 * 1) / (1 + 2 + 1)
         assert abs(wa - expected) < 0.01
 
     def test_weighted_average_grouped(self) -> None:
-        df = pd.DataFrame({
-            "Region": ["E", "E", "W", "W"],
-            "Price": [10, 20, 30, 40],
-            "Volume": [100, 200, 300, 400],
-        })
-        result = Transform.weighted_average(
-            df, "Price", "Volume", group_by="Region"
+        df = pd.DataFrame(
+            {
+                "Region": ["E", "E", "W", "W"],
+                "Price": [10, 20, 30, 40],
+                "Volume": [100, 200, 300, 400],
+            }
         )
+        result = Transform.weighted_average(df, "Price", "Volume", group_by="Region")
         assert len(result) == 2
 
     def test_running_total_grouped(self) -> None:
-        df = pd.DataFrame({
-            "Region": ["A", "A", "B", "B"],
-            "Sales": [10, 20, 100, 200],
-        })
+        df = pd.DataFrame(
+            {
+                "Region": ["A", "A", "B", "B"],
+                "Sales": [10, 20, 100, 200],
+            }
+        )
         result = Transform.running_total(df, "Sales", group_by="Region")
         col = "RunningTotal_Sales"
         assert list(result[col]) == [10, 30, 100, 300]
@@ -1063,6 +1080,7 @@ class TestTransformAdvanced:
 # ====================================================================== #
 #  JOIN TOOLS — Advanced
 # ====================================================================== #
+
 
 class TestJoinAdvanced:
     """Advanced join tool validation."""
@@ -1084,10 +1102,7 @@ class TestJoinAdvanced:
 
     def test_find_replace_entire(self) -> None:
         df = pd.DataFrame({"State": ["CA", "NY", "TX"]})
-        lookup = pd.DataFrame({
-            "State": ["CA", "NY"],
-            "FullName": ["California", "New York"]
-        })
+        lookup = pd.DataFrame({"State": ["CA", "NY"], "FullName": ["California", "New York"]})
         result = Join.find_replace(df, lookup, "State", "FullName")
         assert result["State"].iloc[0] == "California"
         assert result["State"].iloc[2] == "TX"  # Unchanged
@@ -1113,10 +1128,12 @@ class TestJoinAdvanced:
         assert "MatchScore" in result.columns
 
     def test_make_group(self) -> None:
-        df = pd.DataFrame({
-            "A": ["X", "Y", "Z"],
-            "B": ["Y", "Z", "W"],
-        })
+        df = pd.DataFrame(
+            {
+                "A": ["X", "Y", "Z"],
+                "B": ["Y", "Z", "W"],
+            }
+        )
         result = Join.make_group(df, "A", "B")
         assert "Group" in result.columns
         assert "Key" in result.columns
@@ -1133,6 +1150,7 @@ class TestJoinAdvanced:
 # ====================================================================== #
 #  I/O TOOLS
 # ====================================================================== #
+
 
 class TestIOTools:
     """InOut palette tool validation."""

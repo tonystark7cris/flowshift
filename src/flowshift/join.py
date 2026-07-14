@@ -13,7 +13,6 @@ from typing import Sequence
 import pandas as pd
 
 
-
 class Join:
     """Flowshift **Join** tool palette.
 
@@ -51,6 +50,7 @@ class Join:
             >>> L, J, R = Join.join(orders, customers, on="CustomerID")
         """
         from flowshift._config import get_engine
+
         return get_engine().join(left, right, on, left_on, right_on, suffixes)
 
     # ------------------------------------------------------------------ #
@@ -80,6 +80,7 @@ class Join:
             >>> combined = Join.join_multiple(df1, df2, df3, on="ID")
         """
         from flowshift._config import get_engine
+
         return get_engine().join_multiple(*dfs, on=on, join_type=join_type)
 
     # ------------------------------------------------------------------ #
@@ -104,6 +105,7 @@ class Join:
             >>> all_data = Join.union(jan_df, feb_df, mar_df)
         """
         from flowshift._config import get_engine
+
         return get_engine().union(*dfs, by=by)
 
     # ------------------------------------------------------------------ #
@@ -129,7 +131,7 @@ class Join:
             target_col: Column in *df* to search against. Defaults to *find_col* if present.
             mode: ``"entire"`` replaces the whole cell value;
                 ``"partial"`` performs substring replacement.
-            append: If True, appends a new column with the lookup value rather 
+            append: If True, appends a new column with the lookup value rather
                 than replacing in-place.
 
         Returns:
@@ -140,6 +142,7 @@ class Join:
             >>> df = Join.find_replace(df, mapping, "State", "FullName")
         """
         from flowshift._config import get_engine
+
         return get_engine().find_replace(df, find_df, find_col, replace_col, target_col, mode, append)
 
     # ------------------------------------------------------------------ #
@@ -148,18 +151,19 @@ class Join:
     @staticmethod
     def make_group(df: pd.DataFrame, key1: str, key2: str) -> pd.DataFrame:
         """Group data based on relationships.
-        
+
         Takes pairs of related keys and groups them into connected components.
-        
+
         Args:
             df: The input DataFrame containing the relationships.
             key1: First key column.
             key2: Second key column.
-            
+
         Returns:
             A DataFrame with two columns: 'Group' and 'Key'.
         """
         from flowshift._config import get_engine
+
         return get_engine().make_group(df, key1, key2)
 
     # ------------------------------------------------------------------ #
@@ -183,6 +187,7 @@ class Join:
             >>> product = Join.append_fields(sizes_df, colors_df)
         """
         from flowshift._config import get_engine
+
         return get_engine().append_fields(left, right)
 
     # ------------------------------------------------------------------ #
@@ -216,4 +221,5 @@ class Join:
             >>> matches = Join.fuzzy_match(df1, df2, "CompanyName", "Name", threshold=0.7)
         """
         from flowshift._config import get_engine
+
         return get_engine().fuzzy_match(left, right, left_on, right_on, threshold, score_column)

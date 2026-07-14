@@ -116,6 +116,7 @@ class TestFormula:
         # pd.eval can't handle function calls like print(), which previously forced an insecure eval() fallback
         # We now assert that this raises a safe ValueError
         import pytest
+
         with pytest.raises(ValueError, match="Could not safely evaluate formula"):
             Preparation.formula(sample_df, "Print", "print('hello')")
 
@@ -125,7 +126,6 @@ class TestFormula:
         result = Preparation.formula(df, "IsAlice", "Customer Name == 'Alice'")
         assert result["IsAlice"].iloc[0] == True
         assert result["IsAlice"].iloc[1] == False
-
 
 
 class TestSelect:
@@ -154,9 +154,7 @@ class TestDataCleansing:
         assert result["Name"].iloc[0] == "Alice"
 
     def test_replace_nulls(self, sample_df_with_nulls: pd.DataFrame) -> None:
-        result = Preparation.data_cleansing(
-            sample_df_with_nulls, columns=["Name"], replace_nulls_with="Unknown"
-        )
+        result = Preparation.data_cleansing(sample_df_with_nulls, columns=["Name"], replace_nulls_with="Unknown")
         assert "Unknown" in result["Name"].values
 
     def test_remove_punctuation(self) -> None:
@@ -297,11 +295,13 @@ class TestAutoField:
     """Tests for Preparation.auto_field."""
 
     def test_optimizes_types(self) -> None:
-        df = pd.DataFrame({
-            "A": [1, 2, 3, 4, 5, 6],
-            "B": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
-            "C": ["a", "b", "a", "b", "a", "b"],  # 2 unique / 6 rows = 33% < 50%
-        })
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5, 6],
+                "B": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+                "C": ["a", "b", "a", "b", "a", "b"],  # 2 unique / 6 rows = 33% < 50%
+            }
+        )
         result = Preparation.auto_field(df)
         # Category conversion for low-cardinality strings
         assert str(result["C"].dtype) == "category"
@@ -321,20 +321,13 @@ class TestMultiRowFormula:
 
     def test_running_difference(self) -> None:
         df = pd.DataFrame({"Value": [10, 20, 35, 50]})
-        result = Preparation.multi_row_formula(
-            df, "Value", lambda cur, prev: cur - prev, rows_back=1
-        )
+        result = Preparation.multi_row_formula(df, "Value", lambda cur, prev: cur - prev, rows_back=1)
         assert pd.isna(result["Value"].iloc[0])  # No previous row
         assert result["Value"].iloc[1] == 10.0
 
     def test_with_group_by(self) -> None:
-        df = pd.DataFrame({
-            "Group": ["A", "A", "B", "B"],
-            "Value": [10, 20, 10, 30]
-        })
-        result = Preparation.multi_row_formula(
-            df, "Value", lambda cur, prev: cur - prev, rows_back=1, group_by="Group"
-        )
+        df = pd.DataFrame({"Group": ["A", "A", "B", "B"], "Value": [10, 20, 10, 30]})
+        result = Preparation.multi_row_formula(df, "Value", lambda cur, prev: cur - prev, rows_back=1, group_by="Group")
         assert pd.isna(result["Value"].iloc[0])
         assert result["Value"].iloc[1] == 10.0
         assert pd.isna(result["Value"].iloc[2])  # First of group B
@@ -368,9 +361,7 @@ class TestImputation:
         assert "Score_WasImputed" in result.columns
 
     def test_value(self, sample_df_with_nulls: pd.DataFrame) -> None:
-        result = Preparation.imputation(
-            sample_df_with_nulls, "Score", method="value", replacement_value=0
-        )
+        result = Preparation.imputation(sample_df_with_nulls, "Score", method="value", replacement_value=0)
         assert (result.loc[result["Score_WasImputed"], "Score"] == 0).all()
 
     def test_value_no_replacement_raises(self, sample_df_with_nulls: pd.DataFrame) -> None:
@@ -417,12 +408,8 @@ class TestDateFilter:
     """Tests for Preparation.date_filter."""
 
     def test_date_filter(self) -> None:
-        df = pd.DataFrame({
-            "Date": ["2023-01-01", "2023-05-15", "2023-12-31"]
-        })
-        t, f = Preparation.date_filter(
-            df, "Date", start_date="2023-03-01", end_date="2023-06-01"
-        )
+        df = pd.DataFrame({"Date": ["2023-01-01", "2023-05-15", "2023-12-31"]})
+        t, f = Preparation.date_filter(df, "Date", start_date="2023-03-01", end_date="2023-06-01")
         assert len(t) == 1
         assert t["Date"].iloc[0] == "2023-05-15"
         assert len(f) == 2
@@ -454,10 +441,7 @@ class TestRank:
         assert list(result["Rank"]) == [3, 1, 2]
 
     def test_rank_group_by(self) -> None:
-        df = pd.DataFrame({
-            "Group": ["A", "A", "B", "B"],
-            "Score": [10, 20, 10, 5]
-        })
+        df = pd.DataFrame({"Group": ["A", "A", "B", "B"], "Score": [10, 20, 10, 5]})
         result = Preparation.rank(df, "Score", group_by="Group", ascending=False)
         assert result["Rank"].iloc[0] == 2  # Group A, 10
         assert result["Rank"].iloc[1] == 1  # Group A, 20

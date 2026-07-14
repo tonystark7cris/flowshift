@@ -24,14 +24,12 @@ def validate_dataframe(df: Any, param_name: str = "df") -> None:
     valid_types = (pd.DataFrame,)
     try:
         from pyspark.sql import DataFrame as SparkDF
+
         valid_types = (pd.DataFrame, SparkDF)
     except ImportError:
         pass
     if not isinstance(df, valid_types):
-        raise TypeError(
-            f"'{param_name}' must be a pandas or PySpark DataFrame, "
-            f"got {type(df).__name__}."
-        )
+        raise TypeError(f"'{param_name}' must be a pandas or PySpark DataFrame, got {type(df).__name__}.")
 
 
 def validate_columns(
@@ -59,17 +57,11 @@ def validate_columns(
     if isinstance(columns, str):
         columns = [columns]
     elif not isinstance(columns, (list, tuple)):
-        raise TypeError(
-            f"'{param_name}' must be a string or list of strings, "
-            f"got {type(columns).__name__}."
-        )
+        raise TypeError(f"'{param_name}' must be a string or list of strings, got {type(columns).__name__}.")
 
     missing = [c for c in columns if c not in df.columns]
     if missing:
-        raise KeyError(
-            f"Column(s) not found in DataFrame: {missing}. "
-            f"Available columns: {list(df.columns)}"
-        )
+        raise KeyError(f"Column(s) not found in DataFrame: {missing}. Available columns: {list(df.columns)}")
     return list(columns)
 
 

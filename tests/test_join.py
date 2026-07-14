@@ -33,7 +33,7 @@ class TestJoin:
         df1 = pd.DataFrame({"ID": [1, 2], "V1": ["a", "b"]})  # int64
         df2 = pd.DataFrame({"ID": ["1", "3"], "V2": ["x", "y"]})  # object/string
         L, J, R = Join.join(df1, df2, on="ID")
-        
+
         # ID 1 should match despite the datatype drift
         assert len(J) == 1
         assert J["ID"].iloc[0] == 1
@@ -133,10 +133,7 @@ class TestMakeGroup:
 
     def test_basic_group(self) -> None:
         # A=B, B=C, D=E. Groups should be {A,B,C} and {D,E}
-        df = pd.DataFrame({
-            "Key1": ["A", "B", "D"],
-            "Key2": ["B", "C", "E"]
-        })
+        df = pd.DataFrame({"Key1": ["A", "B", "D"], "Key2": ["B", "C", "E"]})
         result = Join.make_group(df, "Key1", "Key2")
         # Smallest element in {A,B,C} is A. Smallest in {D,E} is D.
         assert len(result) == 5
@@ -146,10 +143,7 @@ class TestMakeGroup:
 
     def test_single_nodes(self) -> None:
         # X maps to NaN, should be in group X
-        df = pd.DataFrame({
-            "K1": ["X", "Y"],
-            "K2": [float('nan'), "Z"]
-        })
+        df = pd.DataFrame({"K1": ["X", "Y"], "K2": [float("nan"), "Z"]})
         result = Join.make_group(df, "K1", "K2")
         assert len(result) == 3
         assert set(result["Group"].unique()) == {"X", "Y"}

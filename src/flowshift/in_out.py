@@ -93,6 +93,7 @@ class InOut:
         if ext in (".pkl", ".pickle"):
             warnings.warn(_PICKLE_DEPRECATION_MSG, DeprecationWarning, stacklevel=2)
         from flowshift._config import get_engine
+
         return get_engine().input_data(path, **kwargs)
 
     # ------------------------------------------------------------------ #
@@ -122,6 +123,7 @@ class InOut:
         if ext in (".pkl", ".pickle"):
             warnings.warn(_PICKLE_DEPRECATION_MSG, DeprecationWarning, stacklevel=2)
         from flowshift._config import get_engine
+
         return get_engine().output_data(df, path, **kwargs)
 
     # ------------------------------------------------------------------ #
@@ -151,6 +153,7 @@ class InOut:
             >>> df = InOut.text_input({"Name": ["Alice", "Bob"], "Age": [30, 25]})
         """
         from flowshift._config import get_engine
+
         return get_engine().text_input(data, columns)
 
     # ------------------------------------------------------------------ #
@@ -175,6 +178,7 @@ class InOut:
             >>> result = InOut.browse(df)
         """
         from flowshift._config import get_engine
+
         return get_engine().browse(df, n)
 
     # ------------------------------------------------------------------ #
@@ -203,6 +207,7 @@ class InOut:
             >>> files_df = InOut.directory("./data", "*.csv")
         """
         from flowshift._config import get_engine
+
         return get_engine().directory(path, pattern)
 
     # ------------------------------------------------------------------ #
@@ -219,4 +224,5 @@ class InOut:
             >>> now_df = InOut.date_time_now()
         """
         from flowshift._config import get_engine
+
         return get_engine().date_time_now()

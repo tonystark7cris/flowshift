@@ -14,7 +14,6 @@ from typing import Any, Callable, Sequence
 import pandas as pd
 
 
-
 class Preparation:
     """Flowshift **Preparation** tool palette.
 
@@ -56,6 +55,7 @@ class Preparation:
             >>> t, f = Preparation.filter(df, column="Status", operator="==", value="Active")
         """
         from flowshift._config import get_engine
+
         return get_engine().filter(df, condition, column=column, operator=operator, value=value)
 
     # ------------------------------------------------------------------ #
@@ -84,6 +84,7 @@ class Preparation:
             >>> df = Preparation.formula(df, "Upper", lambda d: d["Name"].str.upper())
         """
         from flowshift._config import get_engine
+
         return get_engine().formula(df, column, expression)
 
     # ------------------------------------------------------------------ #
@@ -111,6 +112,7 @@ class Preparation:
             >>> df2 = Preparation.select(df, ["Name", "Age"], renames={"Name": "FullName"})
         """
         from flowshift._config import get_engine
+
         return get_engine().select(df, columns, renames, dtypes)
 
     # ------------------------------------------------------------------ #
@@ -149,7 +151,18 @@ class Preparation:
             >>> clean = Preparation.data_cleansing(df, ["Name"], strip_whitespace=True)
         """
         from flowshift._config import get_engine
-        return get_engine().data_cleansing(df, columns, remove_null_rows, replace_nulls_with, strip_whitespace, remove_letters, remove_numbers, remove_punctuation, modify_case)
+
+        return get_engine().data_cleansing(
+            df,
+            columns,
+            remove_null_rows,
+            replace_nulls_with,
+            strip_whitespace,
+            remove_letters,
+            remove_numbers,
+            remove_punctuation,
+            modify_case,
+        )
 
     # ------------------------------------------------------------------ #
     # Sort
@@ -175,6 +188,7 @@ class Preparation:
             >>> df = Preparation.sort(df, ["Region", "Sales"], ascending=[True, False])
         """
         from flowshift._config import get_engine
+
         return get_engine().sort(df, columns, ascending)
 
     # ------------------------------------------------------------------ #
@@ -201,6 +215,7 @@ class Preparation:
             >>> uniq, dups = Preparation.unique(df, "Email")
         """
         from flowshift._config import get_engine
+
         return get_engine().unique(df, columns, ignore_case)
 
     # ------------------------------------------------------------------ #
@@ -237,6 +252,7 @@ class Preparation:
             >>> rand_10pct = Preparation.sample(df, pct=0.10, random=True)
         """
         from flowshift._config import get_engine
+
         return get_engine().sample(df, n, pct, random, position, random_state)
 
     # ------------------------------------------------------------------ #
@@ -262,6 +278,7 @@ class Preparation:
             >>> df = Preparation.record_id(df, "RowNum")
         """
         from flowshift._config import get_engine
+
         return get_engine().record_id(df, column_name, start)
 
     # ------------------------------------------------------------------ #
@@ -290,6 +307,7 @@ class Preparation:
             >>> df = Preparation.generate_rows(5, lambda i: {"x": i, "y": i**2})
         """
         from flowshift._config import get_engine
+
         return get_engine().generate_rows(count, expression, columns)
 
     # ------------------------------------------------------------------ #
@@ -312,6 +330,7 @@ class Preparation:
             >>> optimized = Preparation.auto_field(df)
         """
         from flowshift._config import get_engine
+
         return get_engine().auto_field(df)
 
     # ------------------------------------------------------------------ #
@@ -338,6 +357,7 @@ class Preparation:
             >>> df = Preparation.multi_field_formula(df, ["A", "B"], lambda s: s * 2)
         """
         from flowshift._config import get_engine
+
         return get_engine().multi_field_formula(df, columns, expression)
 
     # ------------------------------------------------------------------ #
@@ -374,6 +394,7 @@ class Preparation:
             ... )
         """
         from flowshift._config import get_engine
+
         return get_engine().multi_row_formula(df, column, expression, rows_back, group_by)
 
     # ------------------------------------------------------------------ #
@@ -404,6 +425,7 @@ class Preparation:
             >>> df = Preparation.tile(df, "Sales", 4)
         """
         from flowshift._config import get_engine
+
         return get_engine().tile(df, column, n_tiles, method, output_column)
 
     # ------------------------------------------------------------------ #
@@ -435,6 +457,7 @@ class Preparation:
             >>> df = Preparation.imputation(df, "Salary", method="median")
         """
         from flowshift._config import get_engine
+
         return get_engine().imputation(df, columns, method, replacement_value, add_indicator)
 
     # ------------------------------------------------------------------ #
@@ -461,6 +484,7 @@ class Preparation:
             A tuple ``(estimation_df, validation_df, holdout_df)``.
         """
         from flowshift._config import get_engine
+
         return get_engine().create_samples(df, estimation_pct, validation_pct, holdout_pct, random_state)
 
     # ------------------------------------------------------------------ #
@@ -485,6 +509,7 @@ class Preparation:
             A tuple ``(true_df, false_df)`` matching the tool's **T** and **F** anchors.
         """
         from flowshift._config import get_engine
+
         return get_engine().date_filter(df, column, start_date, end_date)
 
     # ------------------------------------------------------------------ #
@@ -511,6 +536,7 @@ class Preparation:
             A DataFrame with the target class oversampled.
         """
         from flowshift._config import get_engine
+
         return get_engine().oversample_field(df, column, value, target_pct, random_state)
 
     # ------------------------------------------------------------------ #
@@ -539,4 +565,5 @@ class Preparation:
             A DataFrame with the rank column appended.
         """
         from flowshift._config import get_engine
+
         return get_engine().rank(df, column, group_by, ascending, method, output_column)

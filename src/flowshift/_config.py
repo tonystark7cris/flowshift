@@ -12,6 +12,7 @@ except ImportError:
 # Thread-local storage for configuration so multiple pipelines can run safely
 _local_state = threading.local()
 
+
 def _init_state():
     if not hasattr(_local_state, "backend"):
         _local_state.backend = "pandas"
@@ -19,6 +20,7 @@ def _init_state():
         _local_state.engine = PandasEngine()
     if not hasattr(_local_state, "spark_config"):
         _local_state.spark_config = {}
+
 
 def set_backend(backend_name: str, **kwargs: Any) -> None:
     _init_state()
@@ -28,25 +30,31 @@ def set_backend(backend_name: str, **kwargs: Any) -> None:
         _local_state.engine = PandasEngine()
     elif backend_name == "spark":
         if SparkEngine is None:
-            raise ImportError("PySpark is required for the Spark backend. Install it with: pip install flowshift[spark]")
+            raise ImportError(
+                "PySpark is required for the Spark backend. Install it with: pip install flowshift[spark]"
+            )
         _local_state.backend = "spark"
         _local_state.engine = SparkEngine(**kwargs)
         _local_state.spark_config = kwargs
     else:
         raise ValueError(f"Unknown backend: '{backend_name}'. Supported backends are: 'pandas', 'spark'.")
 
+
 def get_backend() -> str:
     _init_state()
     return _local_state.backend
+
 
 def get_engine() -> Any:
     _init_state()
     return _local_state.engine
 
+
 def reset_backend() -> None:
     _local_state.backend = "pandas"
     _local_state.engine = PandasEngine()
     _local_state.spark_config = {}
+
 
 @contextmanager
 def backend(backend_name: str, **kwargs: Any):
@@ -54,7 +62,7 @@ def backend(backend_name: str, **kwargs: Any):
     prev_backend = _local_state.backend
     prev_engine = _local_state.engine
     prev_spark_config = getattr(_local_state, "spark_config", {})
-    
+
     try:
         set_backend(backend_name, **kwargs)
         yield

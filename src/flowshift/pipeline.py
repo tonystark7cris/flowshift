@@ -78,6 +78,7 @@ class Pipeline:
 
         if self.backend_name:
             from flowshift._config import set_backend
+
             set_backend(self.backend_name, **self.config.get("spark_config", {}))
 
         for step in self.steps:
@@ -120,16 +121,8 @@ class Pipeline:
 def cli_main() -> None:
     """CLI entry point for running pipelines."""
     parser = argparse.ArgumentParser(description="Run a flowshift YAML pipeline.")
-    parser.add_argument(
-        "command",
-        choices=["run"],
-        help="Command to execute (e.g., 'run')."
-    )
-    parser.add_argument(
-        "config_path",
-        type=str,
-        help="Path to the YAML pipeline configuration file."
-    )
+    parser.add_argument("command", choices=["run"], help="Command to execute (e.g., 'run').")
+    parser.add_argument("config_path", type=str, help="Path to the YAML pipeline configuration file.")
 
     args = parser.parse_args()
 
@@ -139,6 +132,7 @@ def cli_main() -> None:
         except Exception as e:
             print(f"Pipeline failed: {e}", file=sys.stderr)
             sys.exit(1)
+
 
 if __name__ == "__main__":
     cli_main()

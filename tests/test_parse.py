@@ -12,9 +12,7 @@ class TestDateTime:
     """Tests for Parse.date_time."""
 
     def test_format_conversion(self, sample_dates_df: pd.DataFrame) -> None:
-        result = Parse.date_time(
-            sample_dates_df, "DateStr", input_fmt="%m/%d/%Y", output_fmt="%Y-%m-%d"
-        )
+        result = Parse.date_time(sample_dates_df, "DateStr", input_fmt="%m/%d/%Y", output_fmt="%Y-%m-%d")
         assert result["DateStr"].iloc[0] == "2023-01-15"
 
     def test_infer_format(self) -> None:
@@ -36,9 +34,7 @@ class TestRegexParse:
     """Tests for Parse.regex_parse."""
 
     def test_extract_groups(self, sample_text_df: pd.DataFrame) -> None:
-        result = Parse.regex_parse(
-            sample_text_df, "FullName", r"(\w+)\s+(\w+)", output_cols=["First", "Last"]
-        )
+        result = Parse.regex_parse(sample_text_df, "FullName", r"(\w+)\s+(\w+)", output_cols=["First", "Last"])
         assert result["First"].iloc[0] == "Alice"
         assert result["Last"].iloc[0] == "Smith"
 
@@ -49,9 +45,7 @@ class TestRegexParse:
 
     def test_wrong_column_count(self, sample_text_df: pd.DataFrame) -> None:
         with pytest.raises(ValueError, match="output column names"):
-            Parse.regex_parse(
-                sample_text_df, "FullName", r"(\w+)\s+(\w+)", output_cols=["Only"]
-            )
+            Parse.regex_parse(sample_text_df, "FullName", r"(\w+)\s+(\w+)", output_cols=["Only"])
 
 
 class TestRegexReplace:
@@ -99,22 +93,18 @@ class TestXMLParse:
     """Tests for Parse.xml_parse."""
 
     def test_extract_element(self) -> None:
-        df = pd.DataFrame(
-            {"XML": ['<root><name>Alice</name></root>', '<root><name>Bob</name></root>']}
-        )
+        df = pd.DataFrame({"XML": ["<root><name>Alice</name></root>", "<root><name>Bob</name></root>"]})
         result = Parse.xml_parse(df, "XML", ".//name", "Name")
         assert result["Name"].iloc[0] == "Alice"
         assert result["Name"].iloc[1] == "Bob"
 
     def test_missing_element(self) -> None:
-        df = pd.DataFrame({"XML": ['<root><age>30</age></root>']})
+        df = pd.DataFrame({"XML": ["<root><age>30</age></root>"]})
         result = Parse.xml_parse(df, "XML", ".//name", "Name")
         assert result["Name"].iloc[0] is None
 
     def test_return_child_values(self) -> None:
-        df = pd.DataFrame(
-            {"XML": ['<root><person id="1"><name>Alice</name><age>30</age></person></root>']}
-        )
+        df = pd.DataFrame({"XML": ['<root><person id="1"><name>Alice</name><age>30</age></person></root>']})
         result = Parse.xml_parse(df, "XML", ".//person", "Person", return_child_values=True)
         assert "Person_id" in result.columns
         assert "Person_name" in result.columns
@@ -124,18 +114,14 @@ class TestXMLParse:
         assert result["Person_age"].iloc[0] == "30"
 
     def test_return_outer_xml(self) -> None:
-        df = pd.DataFrame(
-            {"XML": ['<root><name>Alice</name></root>']}
-        )
+        df = pd.DataFrame({"XML": ["<root><name>Alice</name></root>"]})
         result = Parse.xml_parse(df, "XML", ".//name", "Name", return_outer_xml=True)
         assert result["Name"].iloc[0] == "Alice"
         assert "Name_OuterXML" in result.columns
         assert "<name>Alice</name>" in result["Name_OuterXML"].iloc[0]
 
     def test_return_child_and_outer(self) -> None:
-        df = pd.DataFrame(
-            {"XML": ['<root><item v="x"><sub/></item></root>']}
-        )
+        df = pd.DataFrame({"XML": ['<root><item v="x"><sub/></item></root>']})
         result = Parse.xml_parse(df, "XML", ".//item", "Item", return_child_values=True, return_outer_xml=True)
         assert result["Item_v"].iloc[0] == "x"
         assert result["Item_sub"].iloc[0] is None

@@ -13,7 +13,6 @@ from typing import Sequence
 import pandas as pd
 
 
-
 class Parse:
     """Flowshift **Parse** tool palette.
 
@@ -48,6 +47,7 @@ class Parse:
             >>> df = Parse.date_time(df, "Date", input_fmt="%m/%d/%Y", output_fmt="%Y-%m-%d")
         """
         from flowshift._config import get_engine
+
         return get_engine().date_time(df, column, input_fmt, output_fmt)
 
     # ------------------------------------------------------------------ #
@@ -75,6 +75,7 @@ class Parse:
             >>> df = Parse.regex_match(df, "Email", r"^[\\w.]+@[\\w.]+$")
         """
         from flowshift._config import get_engine
+
         return get_engine().regex_match(df, column, pattern, output_column)
 
     # ------------------------------------------------------------------ #
@@ -103,6 +104,7 @@ class Parse:
             >>> df = Parse.regex_parse(df, "FullName", r"(\\w+)\\s+(\\w+)", ["First", "Last"])
         """
         from flowshift._config import get_engine
+
         return get_engine().regex_parse(df, column, pattern, output_cols)
 
     # ------------------------------------------------------------------ #
@@ -130,6 +132,7 @@ class Parse:
             >>> df = Parse.regex_replace(df, "Phone", r"\\D", "")
         """
         from flowshift._config import get_engine
+
         return get_engine().regex_replace(df, column, pattern, replacement)
 
     # ------------------------------------------------------------------ #
@@ -158,6 +161,7 @@ class Parse:
             >>> df = Parse.regex_tokenize(df, "Tags", r",\\s*", split_to="rows")
         """
         from flowshift._config import get_engine
+
         return get_engine().regex_tokenize(df, column, pattern, split_to)
 
     # ------------------------------------------------------------------ #
@@ -188,6 +192,7 @@ class Parse:
             >>> df = Parse.text_to_columns(df, "Skills", ",", split_to="columns")
         """
         from flowshift._config import get_engine
+
         return get_engine().text_to_columns(df, column, delimiter, split_to, num_columns)
 
     # ------------------------------------------------------------------ #
@@ -221,4 +226,5 @@ class Parse:
             >>> df = Parse.xml_parse(df, "XMLData", ".//Person", "Person", return_child_values=True)
         """
         from flowshift._config import get_engine
+
         return get_engine().xml_parse(df, column, xpath, output_column, return_child_values, return_outer_xml)

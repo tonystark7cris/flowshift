@@ -13,7 +13,6 @@ from typing import Sequence
 import pandas as pd
 
 
-
 class Transform:
     """Flowshift **Transform** tool palette.
 
@@ -28,6 +27,7 @@ class Transform:
     def _resolve_aggregation(agg_name: str | Callable) -> str | Callable:
         """Resolve custom aggregation strings to pandas logic."""
         from flowshift._config import get_engine
+
         return get_engine()._resolve_aggregation(agg_name)
 
     # ------------------------------------------------------------------ #
@@ -64,6 +64,7 @@ class Transform:
             ... )
         """
         from flowshift._config import get_engine
+
         return get_engine().summarize(df, group_by, aggregations)
 
     # ------------------------------------------------------------------ #
@@ -94,6 +95,7 @@ class Transform:
             >>> long = Transform.transpose(df, key_columns="ID", data_columns=["Q1", "Q2", "Q3"])
         """
         from flowshift._config import get_engine
+
         return get_engine().transpose(df, key_columns, data_columns, var_name, value_name)
 
     # ------------------------------------------------------------------ #
@@ -123,6 +125,7 @@ class Transform:
             >>> wide = Transform.cross_tab(df, "Region", "Quarter", "Revenue", "sum")
         """
         from flowshift._config import get_engine
+
         return get_engine().cross_tab(df, group_by, pivot_col, value_col, agg)
 
     # ------------------------------------------------------------------ #
@@ -151,6 +154,7 @@ class Transform:
             >>> df = Transform.running_total(df, "Sales", group_by="Region")
         """
         from flowshift._config import get_engine
+
         return get_engine().running_total(df, column, group_by, output_column)
 
     # ------------------------------------------------------------------ #
@@ -174,6 +178,7 @@ class Transform:
             >>> count_df = Transform.count_records(df)
         """
         from flowshift._config import get_engine
+
         return get_engine().count_records(df, output_col)
 
     # ------------------------------------------------------------------ #
@@ -190,7 +195,7 @@ class Transform:
         Args:
             df: The input DataFrame.
             key_columns: Columns to keep as identifiers for each unpivoted row.
-            output_mapping: A dictionary where keys are new column names and 
+            output_mapping: A dictionary where keys are new column names and
                 values are lists of existing columns that will populate them.
                 All lists in the mapping must have the same length.
 
@@ -198,6 +203,7 @@ class Transform:
             A rearranged DataFrame.
         """
         from flowshift._config import get_engine
+
         return get_engine().arrange(df, key_columns, output_mapping)
 
     # ------------------------------------------------------------------ #
@@ -218,6 +224,7 @@ class Transform:
             A wider, shorter DataFrame with wrapped rows.
         """
         from flowshift._config import get_engine
+
         return get_engine().make_columns(df, num_columns)
 
     # ------------------------------------------------------------------ #
@@ -244,4 +251,5 @@ class Transform:
             A DataFrame with the calculated weighted average.
         """
         from flowshift._config import get_engine
+
         return get_engine().weighted_average(df, value_column, weight_column, group_by, output_column)

@@ -59,7 +59,11 @@ class TestColumnInfo:
 
     def test_with_nulls(self, sample_df_with_nulls: pd.DataFrame) -> None:
         result = Developer.column_info(sample_df_with_nulls)
-        name_row = result.loc[result["Name_col"] == "Name"] if "Name_col" in result.columns else result.loc[result["Name"] == "Name"]
+        name_row = (
+            result.loc[result["Name_col"] == "Name"]
+            if "Name_col" in result.columns
+            else result.loc[result["Name"] == "Name"]
+        )
         assert name_row["NullCount"].iloc[0] == 2
 
 
@@ -97,10 +101,7 @@ class TestJSONParse:
     """Tests for Developer.json_parse."""
 
     def test_json_parse(self) -> None:
-        df = pd.DataFrame({
-            "ID": [1, 2],
-            "Data": ['{"name": "Alice", "age": 30}', '{"name": "Bob"}']
-        })
+        df = pd.DataFrame({"ID": [1, 2], "Data": ['{"name": "Alice", "age": 30}', '{"name": "Bob"}']})
         result = Developer.json_parse(df, "Data")
         assert "Data_name" in result.columns
         assert "Data_age" in result.columns
@@ -109,9 +110,7 @@ class TestJSONParse:
         assert pd.isna(result["Data_age"].iloc[1])
 
     def test_json_parse_invalid(self) -> None:
-        df = pd.DataFrame({
-            "Data": ['{"name": "Alice"}', 'invalid json']
-        })
+        df = pd.DataFrame({"Data": ['{"name": "Alice"}', "invalid json"]})
         result = Developer.json_parse(df, "Data", prefix="J")
         assert result["J_name"].iloc[0] == "Alice"
         assert pd.isna(result["J_name"].iloc[1])
@@ -121,22 +120,14 @@ class TestDynamicSelect:
     """Tests for Developer.dynamic_select."""
 
     def test_dynamic_select_dtype(self) -> None:
-        df = pd.DataFrame({
-            "A": [1, 2],
-            "B": ["x", "y"],
-            "C": [3.0, 4.0]
-        })
+        df = pd.DataFrame({"A": [1, 2], "B": ["x", "y"], "C": [3.0, 4.0]})
         result = Developer.dynamic_select(df, dtype_include="number")
         assert "A" in result.columns
         assert "C" in result.columns
         assert "B" not in result.columns
 
     def test_dynamic_select_pattern(self) -> None:
-        df = pd.DataFrame({
-            "Sales_Q1": [100],
-            "Sales_Q2": [200],
-            "Cost": [50]
-        })
+        df = pd.DataFrame({"Sales_Q1": [100], "Sales_Q2": [200], "Cost": [50]})
         result = Developer.dynamic_select(df, pattern="^Sales_")
         assert "Sales_Q1" in result.columns
         assert "Sales_Q2" in result.columns

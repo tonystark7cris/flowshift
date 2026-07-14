@@ -20,6 +20,7 @@ if "JAVA_HOME" not in os.environ:
         os.environ["JAVA_HOME"] = default_java
 
 import importlib.util
+
 HAS_SPARK = importlib.util.find_spec("pyspark") is not None
 if HAS_SPARK:
     from flowshift.engines.spark_engine import SparkEngine
@@ -56,11 +57,11 @@ def test_invalid_backend():
 @pytest.mark.skipif(not HAS_SPARK, reason="PySpark not installed")
 def test_context_manager():
     assert get_backend() == "pandas"
-    
+
     with flowshift.backend("spark"):
         assert get_backend() == "spark"
         assert isinstance(get_engine(), SparkEngine)
-        
+
     assert get_backend() == "pandas"
     assert isinstance(get_engine(), PandasEngine)
 
@@ -68,7 +69,7 @@ def test_context_manager():
 @pytest.mark.skipif(not HAS_SPARK, reason="PySpark not installed")
 def test_thread_safety():
     """Ensure backend switching in one thread doesn't affect another."""
-    
+
     def worker(backend_name, result_list):
         if backend_name:
             set_backend(backend_name)

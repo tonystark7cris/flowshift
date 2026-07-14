@@ -33,17 +33,15 @@ class PandasEngine(BackendEngine):
     def name(self) -> str:
         return "pandas"
 
-    def _log_operation(self, method: str, input_df: pd.DataFrame | None = None, output_df: pd.DataFrame | None = None) -> None:
-        log_data = {
-            "backend": "pandas",
-            "tool": method,
-            "timestamp": datetime.now().isoformat()
-        }
+    def _log_operation(
+        self, method: str, input_df: pd.DataFrame | None = None, output_df: pd.DataFrame | None = None
+    ) -> None:
+        log_data = {"backend": "pandas", "tool": method, "timestamp": datetime.now().isoformat()}
         if input_df is not None and isinstance(input_df, pd.DataFrame):
             log_data["input_rows"] = len(input_df)
         if output_df is not None and isinstance(output_df, pd.DataFrame):
             log_data["output_rows"] = len(output_df)
-            
+
         logger.debug(json.dumps(log_data))
 
     # ================================================================== #
@@ -269,7 +267,7 @@ class PandasEngine(BackendEngine):
             out = df.tail(n).reset_index(drop=True)
         else:
             out = df.head(n).reset_index(drop=True)
-            
+
         self._log_operation("Preparation.sample", df, out)
         return out
 
@@ -373,13 +371,9 @@ class PandasEngine(BackendEngine):
         out = df.copy()
 
         if method == "equal_records":
-            out[output_column] = pd.qcut(
-                out[column], q=n_tiles, labels=range(1, n_tiles + 1), duplicates="drop"
-            )
+            out[output_column] = pd.qcut(out[column], q=n_tiles, labels=range(1, n_tiles + 1), duplicates="drop")
         elif method == "equal_range":
-            out[output_column] = pd.cut(
-                out[column], bins=n_tiles, labels=range(1, n_tiles + 1)
-            )
+            out[output_column] = pd.cut(out[column], bins=n_tiles, labels=range(1, n_tiles + 1))
         else:
             raise ValueError(f"Unknown method '{method}'. Use 'equal_records' or 'equal_range'.")
 
@@ -416,10 +410,7 @@ class PandasEngine(BackendEngine):
                     raise ValueError("'replacement_value' is required when method='value'.")
                 fill = replacement_value
             else:
-                raise ValueError(
-                    f"Unknown method '{method}'. "
-                    "Use 'mean', 'median', 'mode', or 'value'."
-                )
+                raise ValueError(f"Unknown method '{method}'. Use 'mean', 'median', 'mode', or 'value'.")
 
             if fill is not None and not pd.isna(fill):
                 out[col] = out[col].fillna(fill)
@@ -471,7 +462,7 @@ class PandasEngine(BackendEngine):
 
         true_df = df.loc[mask].reset_index(drop=True)
         false_df = df.loc[~mask].reset_index(drop=True)
-        
+
         self._log_operation("Preparation.date_filter", df, true_df)
         return true_df, false_df
 
@@ -587,16 +578,8 @@ class PandasEngine(BackendEngine):
             .drop(columns=["_fs_left_idx_", "_fs_right_idx_", "_merge"])
             .reset_index(drop=True)
         )
-        left_only_idx = (
-            merged.loc[merged["_merge"] == "left_only", "_fs_left_idx_"]
-            .dropna()
-            .astype(int)
-        )
-        right_only_idx = (
-            merged.loc[merged["_merge"] == "right_only", "_fs_right_idx_"]
-            .dropna()
-            .astype(int)
-        )
+        left_only_idx = merged.loc[merged["_merge"] == "left_only", "_fs_left_idx_"].dropna().astype(int)
+        right_only_idx = merged.loc[merged["_merge"] == "right_only", "_fs_right_idx_"].dropna().astype(int)
 
         left_unjoined = left.iloc[left_only_idx].reset_index(drop=True)
         right_unjoined = right.iloc[right_only_idx].reset_index(drop=True)
@@ -642,7 +625,7 @@ class PandasEngine(BackendEngine):
             out = pd.concat(renamed, ignore_index=True)
         else:
             out = pd.concat(dfs, ignore_index=True)
-            
+
         self._log_operation("Join.union", None, out)
         return out
 
@@ -683,8 +666,8 @@ class PandasEngine(BackendEngine):
                 out[target_col] = out[target_col].map(lambda v: lookup.get(v, v))
             elif mode == "partial":
                 for find_val, replace_val in lookup.items():
-                    out[target_col] = out[target_col].astype(str).str.replace(
-                        str(find_val), str(replace_val), regex=False
+                    out[target_col] = (
+                        out[target_col].astype(str).str.replace(str(find_val), str(replace_val), regex=False)
                     )
             else:
                 raise ValueError(f"Unknown mode '{mode}'. Use 'entire' or 'partial'.")
@@ -744,6 +727,7 @@ class PandasEngine(BackendEngine):
         validate_columns(df, [key1, key2])
 
         from collections import defaultdict
+
         graph = defaultdict(set)
 
         for _, row in df.iterrows():
@@ -799,46 +783,66 @@ class PandasEngine(BackendEngine):
         agg = agg_name.lower().strip()
 
         if agg in ("count distinct", "count_distinct"):
-            def _count_distinct(x): return x.nunique()
+
+            def _count_distinct(x):
+                return x.nunique()
+
             _count_distinct.__name__ = "count_distinct"
             return _count_distinct
         if agg in ("count null", "count_null"):
-            def _count_null(x): return x.isna().sum()
+
+            def _count_null(x):
+                return x.isna().sum()
+
             _count_null.__name__ = "count_null"
             return _count_null
         if agg in ("count blank", "count_blank"):
-            def _count_blank(x): return (x.dropna().astype(str).str.strip() == "").sum()
+
+            def _count_blank(x):
+                return (x.dropna().astype(str).str.strip() == "").sum()
+
             _count_blank.__name__ = "count_blank"
             return _count_blank
         if agg in ("count non blank", "count_non_blank"):
-            def _count_non_blank(x): return (x.dropna().astype(str).str.strip() != "").sum()
+
+            def _count_non_blank(x):
+                return (x.dropna().astype(str).str.strip() != "").sum()
+
             _count_non_blank.__name__ = "count_non_blank"
             return _count_non_blank
         if agg in ("concatenate", "concat", "concatenate distinct", "concat_distinct"):
             is_distinct = "distinct" in agg
+
             def _concat(x):
                 vals = x.dropna().astype(str)
                 if is_distinct:
                     vals = pd.Series(list(dict.fromkeys(vals)))
                 return ",".join(vals)
+
             _concat.__name__ = agg.replace(" ", "_")
             return _concat
         if agg == "longest":
+
             def _longest(x):
                 s = x.dropna().astype(str)
                 return s.loc[s.str.len().idxmax()] if not s.empty else pd.NA
+
             _longest.__name__ = "longest"
             return _longest
         if agg == "shortest":
+
             def _shortest(x):
                 s = x.dropna().astype(str)
                 return s.loc[s.str.len().idxmin()] if not s.empty else pd.NA
+
             _shortest.__name__ = "shortest"
             return _shortest
         if agg == "mode":
+
             def _mode(x):
                 m = x.dropna().mode()
                 return m.iloc[0] if not m.empty else pd.NA
+
             _mode.__name__ = "mode"
             return _mode
 
@@ -1032,7 +1036,7 @@ class PandasEngine(BackendEngine):
         out_chunks = []
         for i in range(num_columns):
             chunk = df.iloc[i::num_columns].reset_index(drop=True)
-            chunk = chunk.add_suffix(f"_{i+1}")
+            chunk = chunk.add_suffix(f"_{i + 1}")
             out_chunks.append(chunk)
 
         out = pd.concat(out_chunks, axis=1)
@@ -1091,10 +1095,7 @@ class PandasEngine(BackendEngine):
             ext = "." + str_path.rsplit(".", 1)[-1].lower() if "." in str_path.split("/")[-1] else ""
             reader_name = _READERS.get(ext)
             if reader_name is None:
-                raise ValueError(
-                    f"Unsupported file extension '{ext}'. "
-                    f"Supported: {sorted(_READERS.keys())}"
-                )
+                raise ValueError(f"Unsupported file extension '{ext}'. Supported: {sorted(_READERS.keys())}")
             reader = getattr(pd, reader_name)
             result = reader(str_path, **kwargs)
             if isinstance(result, list):
@@ -1109,10 +1110,7 @@ class PandasEngine(BackendEngine):
         ext = path.suffix.lower()
         reader_name = _READERS.get(ext)
         if reader_name is None:
-            raise ValueError(
-                f"Unsupported file extension '{ext}'. "
-                f"Supported: {sorted(_READERS.keys())}"
-            )
+            raise ValueError(f"Unsupported file extension '{ext}'. Supported: {sorted(_READERS.keys())}")
 
         reader = getattr(pd, reader_name)
 
@@ -1122,6 +1120,7 @@ class PandasEngine(BackendEngine):
         if ext in (".csv", ".tsv") and "engine" not in kwargs:
             try:
                 import pyarrow  # noqa: F401
+
                 kwargs["engine"] = "pyarrow"
             except ImportError:
                 if path.stat().st_size > 100 * 1024 * 1024:  # 100 MB
@@ -1134,7 +1133,7 @@ class PandasEngine(BackendEngine):
         result = reader(path, **kwargs)
         if isinstance(result, list):
             result = result[0]
-            
+
         self._log_operation("InOut.input_data", None, result)
         return result
 
@@ -1148,10 +1147,7 @@ class PandasEngine(BackendEngine):
         ext = path.suffix.lower()
         writer_name = _WRITERS.get(ext)
         if writer_name is None:
-            raise ValueError(
-                f"Unsupported file extension '{ext}'. "
-                f"Supported: {sorted(_WRITERS.keys())}"
-            )
+            raise ValueError(f"Unsupported file extension '{ext}'. Supported: {sorted(_WRITERS.keys())}")
 
         writer = getattr(df, writer_name)
 
@@ -1174,14 +1170,11 @@ class PandasEngine(BackendEngine):
             out = pd.DataFrame(data)
         elif isinstance(data, list):
             if columns is None:
-                raise ValueError(
-                    "When 'data' is a list of lists/tuples, "
-                    "'columns' must be provided."
-                )
+                raise ValueError("When 'data' is a list of lists/tuples, 'columns' must be provided.")
             out = pd.DataFrame(data, columns=columns)
         else:
             raise TypeError(f"Unsupported data type: {type(data).__name__}")
-            
+
         self._log_operation("InOut.text_input", None, out)
         return out
 
@@ -1312,10 +1305,7 @@ class PandasEngine(BackendEngine):
 
         if output_cols is not None:
             if len(output_cols) != extracted.shape[1]:
-                raise ValueError(
-                    f"Expected {extracted.shape[1]} output column names, "
-                    f"got {len(output_cols)}."
-                )
+                raise ValueError(f"Expected {extracted.shape[1]} output column names, got {len(output_cols)}.")
             extracted.columns = output_cols
         else:
             extracted.columns = [f"Group_{i + 1}" for i in range(extracted.shape[1])]
@@ -1358,7 +1348,7 @@ class PandasEngine(BackendEngine):
             out = pd.concat([out.drop(columns=[column]), split_df], axis=1)
         else:
             raise ValueError(f"Unknown split_to '{split_to}'. Use 'rows' or 'columns'.")
-            
+
         self._log_operation("Parse.regex_tokenize", df, out)
         return out
 
@@ -1378,8 +1368,10 @@ class PandasEngine(BackendEngine):
             out[column] = out[column].astype(str).str.split(re.escape(delimiter))
             out = out.explode(column).reset_index(drop=True)
         elif split_to == "columns":
-            split_df = out[column].astype(str).str.split(
-                re.escape(delimiter), expand=True, n=num_columns - 1 if num_columns else None
+            split_df = (
+                out[column]
+                .astype(str)
+                .str.split(re.escape(delimiter), expand=True, n=num_columns - 1 if num_columns else None)
             )
             split_df.columns = [f"{column}_{i + 1}" for i in range(split_df.shape[1])]
             out = pd.concat([out.drop(columns=[column]), split_df], axis=1)
@@ -1440,7 +1432,7 @@ class PandasEngine(BackendEngine):
                 out[f"{output_column}_OuterXML"] = None
         else:
             out = pd.concat([out, extracted_df], axis=1)
-            
+
         self._log_operation("Parse.xml_parse", df, out)
         return out
 
@@ -1458,9 +1450,7 @@ class PandasEngine(BackendEngine):
         validate_columns(df, column)
         out = df.copy()
         out_col = output_column or f"{column}_Base64"
-        out[out_col] = out[column].astype(str).apply(
-            lambda v: base64.b64encode(v.encode("utf-8")).decode("utf-8")
-        )
+        out[out_col] = out[column].astype(str).apply(lambda v: base64.b64encode(v.encode("utf-8")).decode("utf-8"))
         self._log_operation("Developer.base64_encode", df, out)
         return out
 
@@ -1474,9 +1464,7 @@ class PandasEngine(BackendEngine):
         validate_columns(df, column)
         out = df.copy()
         out_col = output_column or f"{column}_Decoded"
-        out[out_col] = out[column].astype(str).apply(
-            lambda v: base64.b64decode(v.encode("utf-8")).decode("utf-8")
-        )
+        out[out_col] = out[column].astype(str).apply(lambda v: base64.b64decode(v.encode("utf-8")).decode("utf-8"))
         self._log_operation("Developer.base64_decode", df, out)
         return out
 
@@ -1490,7 +1478,7 @@ class PandasEngine(BackendEngine):
             query_string = urllib.parse.urlencode(params)
             url = f"{url}?{query_string}"
 
-        with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310
+        with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 # nosec B310
             body = response.read().decode("utf-8")
 
         try:
@@ -1503,7 +1491,7 @@ class PandasEngine(BackendEngine):
                 out = pd.DataFrame({output_column: [body]})
         except (json.JSONDecodeError, ValueError):
             out = pd.DataFrame({output_column: [body]})
-            
+
         self._log_operation("Developer.download", None, out)
         return out
 
@@ -1551,7 +1539,7 @@ class PandasEngine(BackendEngine):
             out = df.rename(columns={c: f"{c}{suffix}" for c in df.columns})
         else:
             raise ValueError(f"Unknown mode '{mode}'. Use 'mapping', 'prefix', or 'suffix'.")
-            
+
         self._log_operation("Developer.dynamic_rename", df, out)
         return out
 
@@ -1589,7 +1577,7 @@ class PandasEngine(BackendEngine):
         out = out.drop(columns=[column])
         parsed_df.index = out.index
         out = pd.concat([out, parsed_df], axis=1)
-        
+
         self._log_operation("Developer.json_parse", df, out)
         return out
 

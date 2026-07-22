@@ -1,23 +1,23 @@
 # Flowshift Comprehensive User Guide
 
-Welcome to the **Flowshift User Guide**! This comprehensive document is designed for data analysts, data engineers, and data scientists looking to adopt Flowshift for production-scale data transformation, ETL, and analytics.
+Welcome to the **Flowshift User Guide**! Flowshift is **the fastest path from proprietary visual ETL to open-source Python**. This document is designed for data directors, analysts, engineers, and consultants migrating enterprise ETL workflows off legacy visual desktop tools to scalable, cost-effective Python code.
 
 ---
 
 ## Overview & Purpose
 
 **What is Flowshift?**
-Flowshift is a powerful Python package that perfectly mirrors visual ETL tools as simple, independent Python functions. It provides a 1:1 API mapping of Flowshift tools to standard Python code and declarative YAML, allowing organizations to migrate ETL workflows to Python with zero friction.
+Flowshift is the translation layer that moves teams from proprietary GUI ETL software to open-source Python in weeks, not months. It provides a 1:1 API mapping of visual ETL tool palettes (`Preparation`, `Join`, `Transform`, `Parse`, `InOut`, `Developer`) to standard Python functions and declarative YAML pipelines.
 
 **Why Flowshift exists:**
-migrating from a visual ETL tool to code-first Python has traditionally been a painful and manual translation exercise. Flowshift was built to bridge this gap, ensuring that business logic, visual anchors, and familiar tool configurations carry over seamlessly.
+Migrating from a visual ETL tool to code-first Python has traditionally been a painful, manual translation exercise. Flowshift bridges this gap: analysts write intuitive operations (`Preparation.filter()`, `Join.join()`) matching their existing mental models, while organizations escape $3,000–$5,000+/user annual software licensing costs.
 
-**Advantages over similar tools:**
-- **Zero-Friction Migration**: Workflows translate 1:1 from visual ETL tools to Flowshift.
-- **Escape Vendor Lock-In**: Execute your data pipelines anywhere Python runs—locally, on Airflow, AWS Lambda, Databricks, etc., without expensive proprietary licensing.
-- **Enterprise Scalability (Dual-Backend)**: Run the same pipeline locally via **Pandas** or dispatch it to a big-data cluster via **PySpark** without changing a single line of logic.
-- **Dual Interface**: Supports both programmatic execution (Python API) and declarative execution (YAML pipelines for no-code ETL).
-- **CI/CD Ready**: Flowshift pipelines are plain code/YAML, allowing standard Git versioning, PR reviews, and automated testing.
+**Key Advantages & Value Proposition:**
+- **Automated Workflow Conversion**: Convert `.yxmd` workflows automatically into Flowshift YAML using `flowshift-convert`.
+- **Zero-Friction Analyst Transition**: Analysts use familiar 1:1 functions and visual output anchors (Filter `T/F` tuples, Join `L/J/R` tuples) without getting stuck on complex Pandas boolean indexing.
+- **Escape Vendor Lock-In**: Execute your data pipelines anywhere Python runs—locally, on Airflow, AWS Lambda, Databricks, etc., with zero proprietary lock-in.
+- **Enterprise Scalability (Dual-Backend)**: Write locally in **Pandas**, then switch backend to **PySpark** (`flowshift.set_backend("spark")`) to scale across distributed clusters without altering a single line of business logic.
+- **Enterprise Data Governance**: Integrated and modular data quality via `flowshift-governance` (PII scanning/masking and schema contracts).
 
 ---
 
@@ -426,6 +426,145 @@ if __name__ == "__main__":
 ---
 
 ## Roadmap & Contribution Guide
+---
+
+## Enterprise Governance
+
+Flowshift includes built-in tools for data governance and compliance — critical for regulated industries (banking, healthcare, insurance) and Big 4 consulting engagements.
+
+### PII Detection
+
+Use `scan_pii()` to automatically detect columns containing Personally Identifiable Information before data flows downstream:
+
+```python
+from flowshift import InOut, scan_pii
+
+df = InOut.input_data("customer_data.csv")
+
+# Scan for PII — returns a report DataFrame
+pii_report = scan_pii(df)
+print(pii_report[["Column", "PII_Type", "Confidence"]])
+#   Column      PII_Type Confidence
+# 0  Email         email       high
+# 1  Phone      phone_us     medium
+# 2    SSN           ssn       high
+```
+
+The scanner supports international patterns including email, phone, SSN, credit card, IP address, Aadhaar (India), IBAN, passport numbers, and more. Custom patterns can be added:
+
+```python
+custom = {
+    "employee_id": {
+        "value_regex": r"EMP-\d{6}",
+        "name_regex": r"(?i)emp.*id",
+        "description": "Internal Employee ID",
+    }
+}
+report = scan_pii(df, patterns=custom)
+```
+
+### Data Contracts (Schema Validation)
+
+Use `expect_schema()` to enforce input/output schemas — critical for audit trails and preventing schema drift:
+
+```python
+from flowshift import expect_schema, infer_schema, InOut
+
+# Bootstrap: infer schema from existing data
+df = InOut.input_data("reference_data.csv")
+schema = infer_schema(df)
+# Save schema as JSON/YAML for version control
+
+# Enforce: validate new data against the contract
+new_df = InOut.input_data("new_data.csv")
+expect_schema(new_df, {
+    "columns": {
+        "CustomerID": {"dtype": "int", "nullable": False},
+        "Name": {"dtype": "str", "nullable": True},
+        "Revenue": {"dtype": "float", "nullable": False},
+    }
+})
+# Raises SchemaViolationError if columns are missing, wrong type, or unexpectedly null
+```
+
+Schema contracts also work in YAML pipelines:
+
+```yaml
+steps:
+  - id: "load_data"
+    tool: "InOut.input_data"
+    args:
+      path: "data.csv"
+    output_schema:
+      columns:
+        CustomerID: {dtype: "int", nullable: false}
+        Revenue: {dtype: "float", nullable: false}
+```
+
+### Pipeline Event Hooks (Alerting)
+
+Flowshift pipelines support event hooks for integrating with alerting systems (Slack, PagerDuty, Teams, email) without adding those libraries as dependencies:
+
+```python
+import requests
+from flowshift import Pipeline
+
+SLACK_WEBHOOK = "https://hooks.slack.com/services/..."
+
+def on_error(step_id, tool_name, error):
+    requests.post(SLACK_WEBHOOK, json={
+        "text": f"🔴 Pipeline step `{step_id}` ({tool_name}) failed: {error}"
+    })
+
+def on_complete(pipeline_name, metrics):
+    total = sum(m["duration_s"] for m in metrics)
+    requests.post(SLACK_WEBHOOK, json={
+        "text": f"✅ Pipeline `{pipeline_name}` completed in {total:.1f}s ({len(metrics)} steps)"
+    })
+
+pipeline = Pipeline.run(
+    "pipeline.yaml",
+    on_step_error=on_error,
+    on_pipeline_complete=on_complete,
+)
+
+# Access metrics programmatically
+for m in pipeline.metrics:
+    print(f"{m['step_id']}: {m['duration_s']}s, {m.get('output_rows', 'N/A')} rows")
+```
+
+### Data Lineage (OpenLineage Integration)
+
+While Flowshift does not ship with a built-in lineage backend, the pipeline metrics and event hooks provide the building blocks for integration with [OpenLineage](https://openlineage.io/):
+
+```python
+from openlineage.client import OpenLineageClient
+
+client = OpenLineageClient(url="http://marquez:5000")
+
+def emit_lineage(step_id, tool_name, metrics):
+    # Map Flowshift step to OpenLineage RunEvent
+    client.emit(
+        run_event=build_run_event(step_id, tool_name, metrics)
+    )
+
+Pipeline.run("pipeline.yaml", on_step_complete=emit_lineage)
+```
+
+### Recommended Data Catalog Integration
+
+For enterprise deployments, we recommend integrating Flowshift with one of these data catalogs:
+
+| Catalog | Integration Pattern |
+|---|---|
+| **Microsoft Purview** | Use Purview REST API in pipeline hooks to register datasets |
+| **Atlan** | Use Atlan SDK in `on_step_complete` to push metadata |
+| **DataHub** | Emit metadata change events via DataHub REST API |
+| **Apache Atlas** | Use Atlas REST API for Hadoop/Spark-centric environments |
+
+---
+
+## Roadmap & Contributing
 
 Flowshift is community-driven and actively maintained. 
 
@@ -435,7 +574,8 @@ Flowshift is community-driven and actively maintained.
 - Enhanced YAML validation schemas.
 
 **How to Contribute:**
-Organizations and individual developers are encouraged to contribute! 
+Organizations and individual developers are encouraged to contribute! See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
+
 1. **Report Bugs**: Open an issue on GitHub detailing your environment and the failed tool.
 2. **Add New Tools**: If you find an community macro that should be core, submit a PR adding it to the appropriate palette.
 3. **Optimize**: Help us write better Vectorized UDFs for the Spark backend.

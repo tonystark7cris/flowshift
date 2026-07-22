@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] — 2026-07-22
+
+### Added
+- **`.yxmd` Workflow Converter**: New `YxmdConverter` class and `flowshift-convert` CLI tool to convert proprietary visual ETL workflow XML files into Flowshift YAML pipelines. Supports 15+ tool mappings with expression translation, topological sorting, and graceful degradation for unparseable tools.
+- **Enterprise Governance Sub-Package (`flowshift-governance`)**: Extracted and expanded data quality toolkit into a standalone package:
+  - `scan_pii()` — Detects PII across 12 international patterns (email, phone, SSN, credit card, Aadhaar, IBAN, passport, etc.) with confidence scoring.
+  - `mask_pii()` — Three masking strategies: `redact`, `hash` (SHA-256), and `pseudonymise` (reversible labels with mapping). Competitive differentiator vs. Great Expectations/Pandera.
+  - `expect_schema()` / `infer_schema()` — Schema contract validation with dtype aliases, nullability checks, strict/non-strict modes.
+  - `profile()` — Statistical profiler with cardinality, null rates, min/max/mean/std, and top-N value distributions.
+  - `ContractSuite` — Batch contract runner for pipeline audit checkpoints with PASS/FAIL/SKIPPED/WARN/ERROR reporting.
+- **Structured Logging**: Replaced all `print()` statements in pipeline engine with `logging.getLogger()` using hierarchical names (`flowshift.pipeline`, `flowshift.engines.pandas`, etc.). Pipeline metrics emitted as structured JSON.
+- **Pipeline Execution Metrics**: Per-step timing (`duration_s`), row counts, output types, and status tracking. Metrics accessible via `Pipeline.metrics` after execution.
+- **Pipeline Event Hooks**: Four lifecycle callbacks (`on_step_start`, `on_step_complete`, `on_step_error`, `on_pipeline_complete`) for integrating with Slack, PagerDuty, Teams, or any alerting system without adding those as dependencies.
+- **Retry/Backoff for Downloads**: `Developer.download()` now supports configurable `max_retries` (default 3) and `retry_delay` (default 1.0s) with exponential backoff. Handles `URLError`, `TimeoutError`, `OSError`, and HTTP 5xx responses.
+- **Schema Contracts in YAML Pipelines**: Steps can declare `output_schema` to enforce data contracts as part of pipeline execution.
+- **Spark Integration Tests in CI**: Dedicated non-blocking CI job running Spark backend tests on Python 3.12.
+- **Security Policy**: Added `SECURITY.md` with vulnerability reporting process, response timeline, and security track record.
+- **Contributing Guide**: Added `CONTRIBUTING.md` with dev setup, code standards, testing requirements, and PR process.
+- **Architecture Decision Records**: Added `doc/adr/` with template and records for dual-backend architecture and eval() removal.
+- **Enterprise Governance Documentation**: New section in `USER_GUIDE.md` covering PII scanning, data contracts, event hooks, OpenLineage integration patterns, and data catalog recommendations.
+
+### Changed
+- **Version bump to 2.0.0** — reflects new sub-package, converter, and breaking packaging changes.
+- **Development Status upgraded from Alpha to Beta** in PyPI classifiers.
+- **Wheel now bundles `flowshift_governance`** alongside `flowshift` — governance features are available without separate installation.
+- **Governance tests included in default pytest** via `testpaths` configuration.
+- **Backward-compatible shim modules** (`flowshift._contracts`, `flowshift._pii`) re-export from `flowshift_governance` with deprecation warnings targeting removal in 3.0.
+
+### Security
+- **Converter uses `defusedxml`** for safe XML parsing of `.yxmd` files (XXE/SSRF protection). Falls back with a hard error if `defusedxml` is not available (no silent downgrade).
+
 ## [1.0.0] — 2026-07-04
 
 ### Added

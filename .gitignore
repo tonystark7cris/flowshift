@@ -38,8 +38,10 @@ htmlcov/
 *.swp
 *.swo
 
-# Mock data generated during E2E test
+# Mock data generated during E2E test & demo execution
 sales.csv
 regions.csv
 cli_test_output.csv
 e2e_demo.py
+demo/*_output.csv
+demo/pipeline_output_*.csv

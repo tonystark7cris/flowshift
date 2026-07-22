@@ -1,63 +1,73 @@
 # 🐦 Flowshift: The Visual ETL-to-Python Migration Engine
 
-**Replicate visual ETL tools as independent Python functions.**
+**The fastest path from proprietary visual ETL to open-source Python.**
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![PyPI version](https://img.shields.io/pypi/v/Flowshift.svg)](https://pypi.org/project/Flowshift/)
+[![PyPI version](https://img.shields.io/pypi/v/flowshift.svg)](https://pypi.org/project/flowshift/)
 
 ---
 
-Welcome to the **Flowshift Documentation**! This comprehensive document is designed for data analysts, data engineers, and data scientists looking to adopt Flowshift for production-scale data transformation, ETL, and analytics.
+Welcome to the **Flowshift Documentation**! Flowshift is the translation layer designed for data directors, consultants, analysts, and engineers moving enterprise workflows off expensive proprietary visual ETL software onto open-source Python.
 
 ---
 
 ## Overview & Purpose
 
-**What is Flowshift?**
-Flowshift is a powerful Python package that perfectly mirrors visual ETL tools as simple, independent Python functions. It provides a 1:1 API mapping of Flowshift tools to standard Python code and declarative YAML, allowing organizations to migrate ETL workflows to Python with zero friction.
+### What is Flowshift?
+Flowshift is the **Visual ETL Migration Accelerator**. It provides a 1:1 API mapping of visual ETL tool palettes (`Preparation`, `Join`, `Transform`, `Parse`, `InOut`, `Developer`) to clean Python code and declarative YAML—allowing enterprise teams to eliminate per-seat licensing costs and migrate workflows to Python in weeks, not months.
 
-**Why Flowshift exists:**
-migrating from a visual ETL tool to code-first Python has traditionally been a painful and manual translation exercise. Flowshift was built to bridge this gap, ensuring that business logic, visual anchors, and familiar tool configurations carry over seamlessly.
+### Why Flowshift Exists
+1. **The Cost Trap:** Proprietary visual ETL software costs **$3,000 to $5,000+ per user annually**. A team of 20 analysts costs $100k+ every single year just for desktop GUI licenses.
+2. **The Cognitive Gap:** Companies want to move to free, open-source Python (`pandas`/`PySpark`), but their analysts only understand visual ETL concepts (Filter T/F anchors, Join L/J/R anchors, Summarize). Teaching an analyst Pandas from scratch takes months and stalls productivity.
+3. **The Flowshift Solution:** Flowshift bridges this gap. Analysts write `Preparation.filter()` using familiar mental models or auto-convert `.yxmd` workflow files using `flowshift-convert`. Data Engineers get clean, testable Python code ready for Airflow or Databricks.
 
-**Advantages over similar tools:**
-- **Zero-Friction Migration**: Workflows translate 1:1 from visual ETL tools to Flowshift.
-- **Escape Vendor Lock-In**: Execute your data pipelines anywhere Python runs—locally, on Airflow, AWS Lambda, Databricks, etc., without expensive proprietary licensing.
-- **Enterprise Scalability (Dual-Backend)**: Run the same pipeline locally via **Pandas** or dispatch it to a big-data cluster via **PySpark** without changing a single line of logic.
-- **Dual Interface**: Supports both programmatic execution (Python API) and declarative execution (YAML pipelines for no-code ETL).
-- **CI/CD Ready**: Flowshift pipelines are plain code/YAML, allowing standard Git versioning, PR reviews, and automated testing.
+### Value Proposition by Persona
+- **For CIOs & Data Directors:** Eliminates expensive visual ETL desktop licensing fees, saving $100k+ annually while eliminating vendor lock-in.
+- **For Data Analysts:** Zero friction. Workflows translate 1:1 using familiar concepts (`Summarize`, `Join`, `Formula`) and visual anchors (`L, J, R` or `T, F` tuples).
+- **For Data Engineers & Consultants:** Automated CLI tool (`flowshift-convert`) translates `.yxmd` XML workflows into executable Flowshift YAML/Python pipelines automatically.
+- **Enterprise Scalability (Dual Backend):** Develop locally using **Pandas**, then switch backend to **PySpark** with one line (`flowshift.set_backend("spark")`) to scale across distributed clusters without altering business logic.
+- **Standalone Data Governance:** Integrated or modular data quality via `flowshift-governance` (PII scanning/masking and schema contracts).
 
 ---
 
 ## Installation & Setup
 
-Flowshift runs anywhere Python 3.9+ is supported.
+Flowshift runs anywhere Python 3.10+ is supported.
 
-### Local Environment
-For a standard local environment utilizing the default Pandas engine:
-```bash
-pip install Flowshift
-```
+### Installation Options
 
-For big-data enterprise environments utilizing the PySpark backend:
 ```bash
-pip install Flowshift[spark]
+# Core Flowshift Engine (Includes Converter & Bundled Governance Tools)
+pip install flowshift
+
+# With PySpark Support (For Big Data Clusters & Distributed Pipelines)
+pip install flowshift[spark]
+
+# With Cloud Storage Support (S3, GCS, ADLS via fsspec & s3fs)
+pip install flowshift[cloud]
+
+# Standalone Data Governance Package (If only using PII/Contracts without Flowshift engine)
+pip install flowshift-governance
+
+# Install All Dependencies (Spark + Cloud + Governance)
+pip install flowshift[all]
 ```
 
 ### Docker
 To run Flowshift in a containerized environment (e.g., for Kubernetes or AWS ECS):
 ```dockerfile
-FROM python:3.9-slim
+FROM python:3.10-slim
 WORKDIR /app
 # Install Flowshift with standard backend
-RUN pip install --no-cache-dir Flowshift
+RUN pip install --no-cache-dir flowshift
 COPY . /app
 CMD ["python", "pipeline.py"]
 ```
 
 ### Cloud Environments (Airflow, Databricks)
-- **Airflow**: Simply add `Flowshift` to your `requirements.txt`. Your DAGs can wrap Flowshift logic inside `PythonOperator`.
-- **Databricks**: Install `Flowshift[spark]` as a cluster library. You can seamlessly run your Flowshift pipeline, and it will transparently dispatch execution to the Databricks Spark cluster.
+- **Airflow**: Add `flowshift` to your `requirements.txt`. Your DAGs can wrap Flowshift logic inside `PythonOperator`.
+- **Databricks**: Install `flowshift[spark]` as a cluster library. Your Flowshift pipelines will transparently dispatch execution to the Databricks Spark cluster.
 
 ---
 
@@ -335,6 +345,89 @@ steps:
       df: "filter_active.0"  # Grabs the TRUE anchor
     args:
       path: "active_customers.csv"
+```
+
+---
+
+## 🔄 Visual Workflow Converter (`flowshift-convert`)
+
+Flowshift includes an automated CLI tool to parse `.yxmd` XML visual workflows and auto-generate Flowshift YAML pipelines:
+
+```bash
+# Convert a .yxmd file into a Flowshift YAML pipeline
+flowshift-convert my_workflow.yxmd -o my_pipeline.yaml
+
+# Dry-run mode to preview converted YAML in stdout
+flowshift-convert my_workflow.yxmd --dry-run
+```
+
+Python API usage:
+```python
+from flowshift.convert import YxmdConverter
+
+converter = YxmdConverter("my_workflow.yxmd")
+yaml_content = converter.to_yaml()
+converter.save("my_pipeline.yaml")
+```
+
+---
+
+## 🛡️ Data Governance & Quality (`flowshift-governance`)
+
+Flowshift comes with enterprise-grade data quality, PII detection, masking, and schema contract tools built-in (also available as the standalone package `flowshift-governance`).
+
+### 1. PII Detection & Compliance Masking (`scan_pii` / `mask_pii`)
+Detect Personally Identifiable Information across 12 international pattern types (email, phone, SSN, credit card, Aadhaar, IBAN, passport, IP address) and apply masking strategies:
+
+```python
+from flowshift import scan_pii
+from flowshift_governance import mask_pii
+
+# 1. Scan for PII
+report = scan_pii(df)
+print(report[["Column", "PII_Type", "Confidence"]])
+
+# 2. Mask sensitive columns
+safe_df = mask_pii(df, report, strategy="redact")                  # Replaces with "***REDACTED***"
+hashed_df = mask_pii(df, report, strategy="hash")                  # Replaces with SHA-256 tokens
+pseudo_df, mapping = mask_pii(df, report, strategy="pseudonymise") # Replaces with labels (e.g. EMAIL_1)
+```
+
+### 2. Schema Contracts (`expect_schema` / `infer_schema`)
+Enforce schema integrity and prevent silent pipeline failures due to schema drift:
+
+```python
+from flowshift import expect_schema, infer_schema
+
+# Bootstrap schema definition from a clean dataset
+schema = infer_schema(reference_df)
+
+# Validate incoming DataFrame against expected schema
+expect_schema(new_df, {
+    "columns": {
+        "CustomerID": {"dtype": "int", "nullable": False},
+        "Email": {"dtype": "str", "nullable": True},
+        "Revenue": {"dtype": "float", "nullable": False},
+    }
+})
+```
+
+### 3. Data Profiling (`profile`) & Audit Checkpoints (`ContractSuite`)
+Profile column distributions or execute batch audits across multiple pipeline stages:
+
+```python
+from flowshift_governance import profile, ContractSuite
+
+# Profile column metrics (Null rates, cardinality %, min/max/mean/std, top-N values)
+profile_df = profile(df)
+
+# Execute batch audit suite across pipeline checkpoints
+suite = ContractSuite("ETL Pipeline Ingestion Audit")
+suite.add_contract("raw_sales", raw_schema, strict=True)
+suite.add_contract("cleaned_sales", cleaned_schema, strict=False)
+
+audit_report = suite.run({"raw_sales": sales_df, "cleaned_sales": cleaned_df})
+print(audit_report[["Contract", "Status", "Violation_Count"]])
 ```
 
 ---

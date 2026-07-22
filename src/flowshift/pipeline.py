@@ -7,18 +7,51 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
+import logging
 import sys
+import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
+import pandas as pd
 import yaml
+
+logger = logging.getLogger("flowshift.pipeline")
 
 
 class Pipeline:
-    """Engine to execute a flowshift pipeline from a YAML configuration."""
+    """Engine to execute a flowshift pipeline from a YAML configuration.
 
-    def __init__(self, config_path: str | Path):
-        """Initialize the pipeline with a path to a YAML configuration file."""
+    Attributes:
+        name: Human-readable pipeline name from YAML config.
+        metrics: List of per-step metric dicts populated after ``execute()``.
+            Each dict contains: ``step_id``, ``tool``, ``duration_s``,
+            ``output_rows``, ``output_type``, and ``status``.
+    """
+
+    def __init__(
+        self,
+        config_path: str | Path,
+        *,
+        on_step_start: Callable[[str, str], None] | None = None,
+        on_step_complete: Callable[[str, str, dict], None] | None = None,
+        on_step_error: Callable[[str, str, Exception], None] | None = None,
+        on_pipeline_complete: Callable[[str, list[dict]], None] | None = None,
+    ):
+        """Initialize the pipeline with a path to a YAML configuration file.
+
+        Args:
+            config_path: Path to the YAML pipeline configuration file.
+            on_step_start: Optional callback ``(step_id, tool_name) -> None``
+                invoked before each step executes.
+            on_step_complete: Optional callback ``(step_id, tool_name, metrics) -> None``
+                invoked after each step succeeds.
+            on_step_error: Optional callback ``(step_id, tool_name, exception) -> None``
+                invoked when a step raises an exception.
+            on_pipeline_complete: Optional callback ``(pipeline_name, all_metrics) -> None``
+                invoked after the entire pipeline finishes successfully.
+        """
         self.config_path = Path(config_path)
         with self.config_path.open("r", encoding="utf-8") as f:
             self.config = yaml.safe_load(f)
@@ -27,6 +60,13 @@ class Pipeline:
         self.backend_name = self.config.get("backend", None)
         self.steps = self.config.get("steps", [])
         self.state: dict[str, Any] = {}
+        self.metrics: list[dict[str, Any]] = []
+
+        # Event hooks for alerting integration
+        self._on_step_start = on_step_start
+        self._on_step_complete = on_step_complete
+        self._on_step_error = on_step_error
+        self._on_pipeline_complete = on_pipeline_complete
 
     def _resolve_input(self, ref: str) -> Any:
         """Resolve an input reference string to a DataFrame from state.
@@ -72,14 +112,72 @@ class Pipeline:
         except AttributeError as e:
             raise ValueError(f"Could not find tool '{tool_path}' in flowshift.") from e
 
+    @staticmethod
+    def _measure_output(result: Any) -> dict[str, Any]:
+        """Extract row count and type info from a step result."""
+        info: dict[str, Any] = {"output_type": type(result).__name__}
+
+        if isinstance(result, pd.DataFrame):
+            info["output_rows"] = len(result)
+            info["output_cols"] = len(result.columns)
+        elif isinstance(result, tuple):
+            info["output_type"] = f"tuple[{len(result)}]"
+            # Report rows for each element if they are DataFrames
+            for i, item in enumerate(result):
+                if isinstance(item, pd.DataFrame):
+                    info[f"output_{i}_rows"] = len(item)
+                else:
+                    try:
+                        from pyspark.sql import DataFrame as SparkDF
+
+                        if isinstance(item, SparkDF):
+                            info[f"output_{i}_type"] = "SparkDataFrame"
+                    except ImportError:
+                        pass
+        else:
+            try:
+                from pyspark.sql import DataFrame as SparkDF
+
+                if isinstance(result, SparkDF):
+                    info["output_type"] = "SparkDataFrame"
+            except ImportError:
+                pass
+
+        return info
+
+    def _validate_step_schema(self, step: dict, step_id: str, result: Any) -> None:
+        """Validate step output against an optional schema contract."""
+        output_schema = step.get("output_schema")
+        if not output_schema:
+            return
+
+        from flowshift._contracts import expect_schema
+
+        # For tuple results, validate the first DataFrame by default
+        df_to_validate = result
+        if isinstance(result, tuple):
+            schema_index = output_schema.get("_tuple_index", 0)
+            df_to_validate = result[schema_index]
+
+        expect_schema(df_to_validate, output_schema)
+        logger.debug("Schema validation passed for step '%s'", step_id)
+
     def execute(self) -> None:
-        """Run all steps in the pipeline sequentially."""
-        print(f"Starting Pipeline: {self.name}")
+        """Run all steps in the pipeline sequentially.
+
+        Populates ``self.metrics`` with per-step execution data. Invokes
+        registered event hooks at each lifecycle point.
+        """
+        pipeline_start = time.perf_counter()
+        self.metrics = []
+
+        logger.info("Starting pipeline: '%s' (%d steps)", self.name, len(self.steps))
 
         if self.backend_name:
             from flowshift._config import set_backend
 
             set_backend(self.backend_name, **self.config.get("spark_config", {}))
+            logger.info("Backend set to '%s'", self.backend_name)
 
         for step in self.steps:
             step_id = step.get("id")
@@ -90,32 +188,114 @@ class Pipeline:
             if not step_id or not tool_name:
                 raise ValueError("Each step must have an 'id' and a 'tool'.")
 
-            print(f"  -> Executing step: {step_id} ({tool_name})")
+            # Fire on_step_start hook
+            if self._on_step_start:
+                self._on_step_start(step_id, tool_name)
 
-            # 1. Resolve inputs
-            resolved_inputs = {}
-            for param_name, ref in inputs.items():
-                resolved_inputs[param_name] = self._resolve_input(ref)
+            logger.info("Executing step: '%s' (%s)", step_id, tool_name)
+            step_start = time.perf_counter()
 
-            # 2. Merge inputs with other kwargs
-            kwargs = {**resolved_inputs, **args}
+            try:
+                # 1. Resolve inputs
+                resolved_inputs = {}
+                for param_name, ref in inputs.items():
+                    resolved_inputs[param_name] = self._resolve_input(ref)
 
-            # 3. Get callable
-            tool_func = self._get_tool_callable(tool_name)
+                # 2. Merge inputs with other kwargs
+                kwargs = {**resolved_inputs, **args}
 
-            # 4. Execute
-            result = tool_func(**kwargs)
+                # 3. Get callable
+                tool_func = self._get_tool_callable(tool_name)
 
-            # 5. Store in state
-            self.state[step_id] = result
+                # 4. Execute
+                result = tool_func(**kwargs)
 
-        print("Pipeline completed successfully.")
+                # 5. Store in state
+                self.state[step_id] = result
+
+                # 6. Validate schema contract if provided
+                self._validate_step_schema(step, step_id, result)
+
+            except Exception as e:
+                duration = time.perf_counter() - step_start
+                step_metric = {
+                    "step_id": step_id,
+                    "tool": tool_name,
+                    "duration_s": round(duration, 4),
+                    "status": "error",
+                    "error": str(e),
+                }
+                self.metrics.append(step_metric)
+                logger.error(
+                    "Step '%s' failed after %.4fs: %s",
+                    step_id,
+                    duration,
+                    e,
+                )
+                # Fire on_step_error hook
+                if self._on_step_error:
+                    self._on_step_error(step_id, tool_name, e)
+                raise
+
+            # 7. Record metrics
+            duration = time.perf_counter() - step_start
+            step_metric = {
+                "step_id": step_id,
+                "tool": tool_name,
+                "duration_s": round(duration, 4),
+                "status": "success",
+                **self._measure_output(result),
+            }
+            self.metrics.append(step_metric)
+
+            logger.info(
+                "Step '%s' completed: %s",
+                step_id,
+                json.dumps(step_metric, default=str),
+            )
+
+            # Fire on_step_complete hook
+            if self._on_step_complete:
+                self._on_step_complete(step_id, tool_name, step_metric)
+
+        # Pipeline summary
+        total_duration = time.perf_counter() - pipeline_start
+        summary = {
+            "pipeline": self.name,
+            "total_steps": len(self.metrics),
+            "total_duration_s": round(total_duration, 4),
+            "status": "success",
+        }
+        logger.info("Pipeline completed: %s", json.dumps(summary, default=str))
+
+        # Fire on_pipeline_complete hook
+        if self._on_pipeline_complete:
+            self._on_pipeline_complete(self.name, self.metrics)
 
     @classmethod
-    def run(cls, config_path: str | Path) -> None:
-        """Convenience method to load and execute a pipeline."""
-        pipeline = cls(config_path)
+    def run(
+        cls,
+        config_path: str | Path,
+        *,
+        on_step_start: Callable[[str, str], None] | None = None,
+        on_step_complete: Callable[[str, str, dict], None] | None = None,
+        on_step_error: Callable[[str, str, Exception], None] | None = None,
+        on_pipeline_complete: Callable[[str, list[dict]], None] | None = None,
+    ) -> Pipeline:
+        """Convenience method to load and execute a pipeline.
+
+        Returns:
+            The ``Pipeline`` instance (with populated ``metrics``).
+        """
+        pipeline = cls(
+            config_path,
+            on_step_start=on_step_start,
+            on_step_complete=on_step_complete,
+            on_step_error=on_step_error,
+            on_pipeline_complete=on_pipeline_complete,
+        )
         pipeline.execute()
+        return pipeline
 
 
 def cli_main() -> None:
@@ -126,11 +306,18 @@ def cli_main() -> None:
 
     args = parser.parse_args()
 
+    # Configure root logger for CLI usage
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+    )
+
     if args.command == "run":
         try:
             Pipeline.run(args.config_path)
         except Exception as e:
-            print(f"Pipeline failed: {e}", file=sys.stderr)
+            logger.error("Pipeline failed: %s", e)
             sys.exit(1)
 
 

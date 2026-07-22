@@ -849,7 +849,7 @@ class TestDocumentation:
 
     def test_yaml_pipeline_execution(self) -> None:
         """The sample YAML pipeline should execute without errors."""
-        yaml_path = Path(__file__).parent.parent / "sample_pipeline.yaml"
+        yaml_path = Path(__file__).parent.parent / "demo" / "sample_pipeline.yaml"
         if yaml_path.exists():
             pipeline = Pipeline(yaml_path)
             pipeline.execute()

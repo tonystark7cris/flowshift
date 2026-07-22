@@ -82,11 +82,16 @@ class Developer:
         url: str,
         params: dict[str, Any] | None = None,
         output_column: str = "DownloadData",
+        max_retries: int = 3,
+        retry_delay: float = 1.0,
     ) -> pd.DataFrame:
         """Fetch data from a URL.
 
         Attempts to parse the response as JSON.  If that fails, the raw
         text is returned in a single-column DataFrame.
+
+        Includes automatic retry with exponential backoff for transient
+        network failures (``URLError``, ``TimeoutError``, HTTP 5xx).
 
         **Note**: This uses ``urllib`` from the standard library to avoid
         adding ``requests`` as a hard dependency.
@@ -95,16 +100,20 @@ class Developer:
             url: The URL to fetch.
             params: Optional query parameters.
             output_column: Name of the output column.
+            max_retries: Maximum number of retry attempts (default 3).
+            retry_delay: Base delay in seconds between retries (default 1.0).
+                Uses exponential backoff: delay × 2^(attempt-1).
 
         Returns:
             A DataFrame containing the downloaded data.
 
         Example:
             >>> df = Developer.download("https://api.example.com/data")
+            >>> df = Developer.download("https://api.example.com/data", max_retries=5)
         """
         from flowshift._config import get_engine
 
-        return get_engine().download(url, params, output_column)
+        return get_engine().download(url, params, output_column, max_retries, retry_delay)
 
     # ------------------------------------------------------------------ #
     # Column Info

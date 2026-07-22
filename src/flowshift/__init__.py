@@ -1,8 +1,9 @@
-"""flowshift — Python ETL toolkit — Flowshift..
+"""flowshift — The fastest path from proprietary visual ETL to open-source Python.
 
-Replicate every major visual ETL tool as an independent Python
-function, organised under classes that mirror Flowshift's tool palette
-categories. Uses **pandas** (local) or **PySpark** (cluster) as the data engine.
+Accelerates migration from legacy visual ETL tools to
+open-source Python by providing 1:1 tool palette mappings (Preparation, Join,
+Transform, Parse, InOut, Developer). Uses **pandas** (local) or **PySpark** (cluster)
+as the underlying data engine. Includes automated ``.yxmd`` workflow conversion tools.
 
 Quick start::
 
@@ -16,7 +17,10 @@ Quick start::
 """
 
 from flowshift._config import backend, get_backend, set_backend
+from flowshift._contracts import SchemaViolationError, expect_schema, infer_schema
+from flowshift._pii import scan_pii
 from flowshift._version import __version__
+from flowshift.convert import YxmdConverter
 from flowshift.developer import Developer
 from flowshift.in_out import InOut
 from flowshift.join import Join
@@ -27,6 +31,9 @@ from flowshift.transform import Transform
 
 __all__ = [
     "__version__",
+    # Converter
+    "YxmdConverter",
+    # Tool palettes
     "Developer",
     "InOut",
     "Join",
@@ -37,4 +44,10 @@ __all__ = [
     "set_backend",
     "get_backend",
     "backend",
+    # Data contracts
+    "expect_schema",
+    "infer_schema",
+    "SchemaViolationError",
+    # PII scanning
+    "scan_pii",
 ]

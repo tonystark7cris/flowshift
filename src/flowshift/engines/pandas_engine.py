@@ -10,6 +10,7 @@ import difflib
 import json
 import logging
 import re
+import urllib.error
 import urllib.parse
 import urllib.request
 import defusedxml.ElementTree as ET  # XXE-safe XML parsing
@@ -1473,13 +1474,45 @@ class PandasEngine(BackendEngine):
         url: str,
         params: dict[str, Any] | None = None,
         output_column: str = "DownloadData",
+        max_retries: int = 3,
+        retry_delay: float = 1.0,
     ) -> pd.DataFrame:
+        import time
+
         if params:
             query_string = urllib.parse.urlencode(params)
             url = f"{url}?{query_string}"
 
-        with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 # nosec B310
-            body = response.read().decode("utf-8")
+        last_exception: Exception | None = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 # nosec B310
+                    status_code = response.getcode()
+                    if status_code and status_code >= 500:
+                        raise urllib.error.URLError(f"Server error: HTTP {status_code}")
+                    body = response.read().decode("utf-8")
+                break  # Success — exit retry loop
+            except (urllib.error.URLError, TimeoutError, OSError) as e:
+                last_exception = e
+                if attempt < max_retries:
+                    wait = retry_delay * (2 ** (attempt - 1))  # Exponential backoff
+                    logger.warning(
+                        "Download attempt %d/%d failed for '%s': %s. Retrying in %.1fs...",
+                        attempt,
+                        max_retries,
+                        url,
+                        e,
+                        wait,
+                    )
+                    time.sleep(wait)
+                else:
+                    logger.error(
+                        "Download failed after %d attempts for '%s': %s",
+                        max_retries,
+                        url,
+                        e,
+                    )
+                    raise
 
         try:
             data = json.loads(body)

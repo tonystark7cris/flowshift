@@ -302,7 +302,14 @@ class BackendEngine(abc.ABC):
     def base64_decode(self, df: Any, column: str, output_column: str | None = None) -> Any:
         self._not_implemented("base64_decode")
 
-    def download(self, url: str, params: dict[str, Any] | None = None, output_column: str = "DownloadData") -> Any:
+    def download(
+        self,
+        url: str,
+        params: dict[str, Any] | None = None,
+        output_column: str = "DownloadData",
+        max_retries: int = 3,
+        retry_delay: float = 1.0,
+    ) -> Any:
         self._not_implemented("download")
 
     def column_info(self, df: Any) -> Any:

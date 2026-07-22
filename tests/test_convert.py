@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import textwrap
 from pathlib import Path
 
 import pytest
@@ -23,6 +22,7 @@ SAMPLE_YXMD = FIXTURES / "sample_workflow.yxmd"
 # ============================================================================
 # Helper utilities
 # ============================================================================
+
 
 class TestExtractPluginShortName:
     def test_three_part_plugin_string(self):
@@ -103,6 +103,7 @@ class TestTranslateYxmdExpression:
 # YxmdConverter — core functionality
 # ============================================================================
 
+
 class TestYxmdConverterInit:
     def test_loads_sample_workflow(self):
         c = YxmdConverter(SAMPLE_YXMD)
@@ -150,10 +151,7 @@ class TestYxmdConverterToYaml:
     @classmethod
     def parsed_steps(cls, request, yaml_text):
         """Parse just the steps from the output (strip comment header)."""
-        content_lines = [
-            ln for ln in yaml_text.splitlines()
-            if not ln.startswith("#")
-        ]
+        content_lines = [ln for ln in yaml_text.splitlines() if not ln.startswith("#")]
         parsed = yaml.safe_load("\n".join(content_lines))
         request.cls._parsed = parsed
         return parsed
@@ -213,65 +211,49 @@ class TestYxmdConverterToYaml:
         assert "Preparation.select" in tools
 
     def test_input_step_has_path_arg(self, parsed_steps):
-        input_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "InOut.input_data"), None
-        )
+        input_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "InOut.input_data"), None)
         assert input_step is not None
         assert "path" in input_step.get("args", {})
         assert input_step["args"]["path"] == "sales_data.csv"
 
     def test_output_step_has_path_arg(self, parsed_steps):
-        output_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "InOut.output_data"), None
-        )
+        output_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "InOut.output_data"), None)
         assert output_step is not None
         assert "path" in output_step.get("args", {})
         assert output_step["args"]["path"] == "regional_summary.csv"
 
     def test_filter_condition_parsed(self, parsed_steps):
-        filter_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.filter"), None
-        )
+        filter_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.filter"), None)
         assert filter_step is not None
         condition = filter_step.get("args", {}).get("condition", "")
         assert "Revenue" in condition
         assert "1000" in condition
 
     def test_sort_column_parsed(self, parsed_steps):
-        sort_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.sort"), None
-        )
+        sort_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.sort"), None)
         assert sort_step is not None
         args = sort_step.get("args", {})
         assert "columns" in args
 
     def test_sort_descending_flag(self, parsed_steps):
-        sort_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.sort"), None
-        )
+        sort_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.sort"), None)
         assert sort_step is not None
         assert sort_step["args"].get("ascending") is False
 
     def test_summarize_has_group_by(self, parsed_steps):
-        summ_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Transform.summarize"), None
-        )
+        summ_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Transform.summarize"), None)
         assert summ_step is not None
         assert "group_by" in summ_step.get("args", {})
         assert summ_step["args"]["group_by"] == "Region"
 
     def test_summarize_has_aggregations(self, parsed_steps):
-        summ_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Transform.summarize"), None
-        )
+        summ_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Transform.summarize"), None)
         aggs = summ_step["args"].get("aggregations", {})
         assert "Revenue" in aggs
         assert aggs["Revenue"] == "sum"
 
     def test_select_columns_parsed(self, parsed_steps):
-        sel_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.select"), None
-        )
+        sel_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.select"), None)
         assert sel_step is not None
         cols = sel_step.get("args", {}).get("columns", [])
         assert "Revenue" in cols
@@ -279,39 +261,25 @@ class TestYxmdConverterToYaml:
         assert "InternalNote" not in cols
 
     def test_formula_column_parsed(self, parsed_steps):
-        form_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.formula"), None
-        )
+        form_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.formula"), None)
         assert form_step is not None
         assert form_step["args"].get("column") == "ProfitMargin"
 
     def test_filter_t_anchor_produces_dot_zero_ref(self, parsed_steps):
         """The Select step that receives Filter's T anchor should ref filter_step.0"""
-        filter_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.filter"), None
-        )
-        select_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.select"), None
-        )
+        filter_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.filter"), None)
+        select_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.select"), None)
         assert filter_step is not None and select_step is not None
         df_ref = select_step.get("inputs", {}).get("df", "")
-        assert df_ref.endswith(".0"), (
-            f"Expected Select's input to reference Filter's T anchor (.0), got: {df_ref!r}"
-        )
+        assert df_ref.endswith(".0"), f"Expected Select's input to reference Filter's T anchor (.0), got: {df_ref!r}"
 
     def test_filter_f_anchor_produces_dot_one_ref(self, parsed_steps):
         """The Formula step that receives Filter's F anchor should ref filter_step.1"""
-        filter_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.filter"), None
-        )
-        form_step = next(
-            (s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.formula"), None
-        )
+        filter_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.filter"), None)
+        form_step = next((s for s in parsed_steps["steps"] if s.get("tool") == "Preparation.formula"), None)
         assert filter_step is not None and form_step is not None
         df_ref = form_step.get("inputs", {}).get("df", "")
-        assert df_ref.endswith(".1"), (
-            f"Expected Formula's input to reference Filter's F anchor (.1), got: {df_ref!r}"
-        )
+        assert df_ref.endswith(".1"), f"Expected Formula's input to reference Filter's F anchor (.1), got: {df_ref!r}"
 
     def test_steps_in_topological_order(self, parsed_steps):
         """Input step must appear before Filter, Filter before Select, etc."""
@@ -415,9 +383,11 @@ class TestYxmdConverterEmptyWorkflow:
 class TestPublicApiExport:
     def test_yxmd_converter_importable_from_root(self):
         from flowshift import YxmdConverter as YC
+
         assert YC is not None
 
     def test_yxmd_converter_is_same_class(self):
         from flowshift import YxmdConverter as YC
         from flowshift.convert import YxmdConverter
+
         assert YC is YxmdConverter

@@ -16,18 +16,20 @@ from flowshift_governance.contracts import (
     profile,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def sample_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "ID": [1, 2, 3],
-        "Name": ["Alice", "Bob", "Charlie"],
-        "Score": [95.5, 88.0, 72.5],
-    })
+    return pd.DataFrame(
+        {
+            "ID": [1, 2, 3],
+            "Name": ["Alice", "Bob", "Charlie"],
+            "Score": [95.5, 88.0, 72.5],
+        }
+    )
 
 
 @pytest.fixture
@@ -44,6 +46,7 @@ def sample_schema() -> dict:
 # ---------------------------------------------------------------------------
 # infer_schema
 # ---------------------------------------------------------------------------
+
 
 class TestInferSchema:
     def test_basic_inference(self, sample_df):
@@ -73,6 +76,7 @@ class TestInferSchema:
 # ---------------------------------------------------------------------------
 # expect_schema — happy path
 # ---------------------------------------------------------------------------
+
 
 class TestExpectSchemaPass:
     def test_valid_schema(self, sample_df, sample_schema):
@@ -114,6 +118,7 @@ class TestExpectSchemaPass:
 # ---------------------------------------------------------------------------
 # expect_schema — violations
 # ---------------------------------------------------------------------------
+
 
 class TestExpectSchemaViolations:
     def test_missing_column(self, sample_df):
@@ -165,6 +170,7 @@ class TestExpectSchemaViolations:
 # _dtype_matches
 # ---------------------------------------------------------------------------
 
+
 class TestDtypeMatches:
     def test_exact_match(self):
         assert _dtype_matches("int64", "int64") is True
@@ -193,6 +199,7 @@ class TestDtypeMatches:
 # profile
 # ---------------------------------------------------------------------------
 
+
 class TestProfile:
     def test_returns_dataframe(self, sample_df):
         result = profile(sample_df)
@@ -209,8 +216,17 @@ class TestProfile:
     def test_required_output_columns(self, sample_df):
         result = profile(sample_df)
         required = {
-            "Column", "Dtype", "Row_Count", "Null_Count", "Null_Rate_Pct",
-            "Unique_Count", "Cardinality_Pct", "Min", "Max", "Mean", "Std",
+            "Column",
+            "Dtype",
+            "Row_Count",
+            "Null_Count",
+            "Null_Rate_Pct",
+            "Unique_Count",
+            "Cardinality_Pct",
+            "Min",
+            "Max",
+            "Mean",
+            "Std",
             "Top_Values",
         }
         assert required.issubset(set(result.columns))
@@ -283,6 +299,7 @@ class TestProfile:
 # ---------------------------------------------------------------------------
 # ContractSuite
 # ---------------------------------------------------------------------------
+
 
 class TestContractSuite:
     @pytest.fixture

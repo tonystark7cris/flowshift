@@ -53,6 +53,7 @@ logger = logging.getLogger("flowshift_governance.contracts")
 # Exceptions
 # ---------------------------------------------------------------------------
 
+
 class SchemaViolationError(Exception):
     """Raised when a DataFrame violates a declared schema contract.
 
@@ -62,9 +63,7 @@ class SchemaViolationError(Exception):
 
     def __init__(self, violations: list[str]) -> None:
         self.violations = violations
-        msg = f"Schema contract violated ({len(violations)} issue(s)):\n" + "\n".join(
-            f"  - {v}" for v in violations
-        )
+        msg = f"Schema contract violated ({len(violations)} issue(s)):\n" + "\n".join(f"  - {v}" for v in violations)
         super().__init__(msg)
 
 
@@ -73,8 +72,20 @@ class SchemaViolationError(Exception):
 # ---------------------------------------------------------------------------
 
 _DTYPE_ALIASES: dict[str, set[str]] = {
-    "int": {"int8", "int16", "int32", "int64", "Int8", "Int16", "Int32", "Int64",
-             "uint8", "uint16", "uint32", "uint64"},
+    "int": {
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "Int8",
+        "Int16",
+        "Int32",
+        "Int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+    },
     "float": {"float16", "float32", "float64", "Float32", "Float64"},
     "str": {"object", "string", "str"},
     "bool": {"bool", "boolean"},
@@ -107,6 +118,7 @@ def _dtype_matches(actual_dtype: str, expected_dtype: str) -> bool:
 # ---------------------------------------------------------------------------
 # infer_schema
 # ---------------------------------------------------------------------------
+
 
 def infer_schema(df: pd.DataFrame) -> dict[str, Any]:
     """Generate a schema dict from a DataFrame for bootstrapping contracts.
@@ -144,6 +156,7 @@ def infer_schema(df: pd.DataFrame) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # expect_schema
 # ---------------------------------------------------------------------------
+
 
 def expect_schema(
     df: pd.DataFrame,
@@ -208,16 +221,12 @@ def expect_schema(
         if expected_dtype:
             actual_dtype = str(df[col].dtype)
             if not _dtype_matches(actual_dtype, expected_dtype):
-                violations.append(
-                    f"Column '{col}': expected dtype '{expected_dtype}', got '{actual_dtype}'"
-                )
+                violations.append(f"Column '{col}': expected dtype '{expected_dtype}', got '{actual_dtype}'")
 
         nullable = spec.get("nullable", True)
         if not nullable and df[col].isna().any():
             null_count = int(df[col].isna().sum())
-            violations.append(
-                f"Column '{col}': schema declares non-nullable but found {null_count} null(s)"
-            )
+            violations.append(f"Column '{col}': schema declares non-nullable but found {null_count} null(s)")
 
     if violations:
         if strict:
@@ -232,6 +241,7 @@ def expect_schema(
 # ---------------------------------------------------------------------------
 # profile  — richer than infer_schema, competitive with ydata-profiling
 # ---------------------------------------------------------------------------
+
 
 def profile(
     df: pd.DataFrame,
@@ -298,12 +308,11 @@ def profile(
 
         # Numeric stats
         col_min = col_max = col_mean = col_std = None
-        if pd.api.types.is_numeric_dtype(series):
-            if non_null_count > 0:
-                col_min = round(float(non_null.min()), 6)
-                col_max = round(float(non_null.max()), 6)
-                col_mean = round(float(non_null.mean()), 6)
-                col_std = round(float(non_null.std()), 6) if non_null_count > 1 else 0.0
+        if pd.api.types.is_numeric_dtype(series) and non_null_count > 0:
+            col_min = round(float(non_null.min()), 6)
+            col_max = round(float(non_null.max()), 6)
+            col_mean = round(float(non_null.mean()), 6)
+            col_std = round(float(non_null.std()), 6) if non_null_count > 1 else 0.0
 
         # Top-N values
         top_values_str = ""
@@ -311,20 +320,22 @@ def profile(
             vc = non_null.value_counts().head(top_n)
             top_values_str = ", ".join(f"{v} ({c})" for v, c in vc.items())
 
-        rows.append({
-            "Column": col,
-            "Dtype": str(series.dtype),
-            "Row_Count": total_rows,
-            "Null_Count": null_count,
-            "Null_Rate_Pct": null_rate,
-            "Unique_Count": unique_count,
-            "Cardinality_Pct": cardinality_pct,
-            "Min": col_min,
-            "Max": col_max,
-            "Mean": col_mean,
-            "Std": col_std,
-            "Top_Values": top_values_str,
-        })
+        rows.append(
+            {
+                "Column": col,
+                "Dtype": str(series.dtype),
+                "Row_Count": total_rows,
+                "Null_Count": null_count,
+                "Null_Rate_Pct": null_rate,
+                "Unique_Count": unique_count,
+                "Cardinality_Pct": cardinality_pct,
+                "Min": col_min,
+                "Max": col_max,
+                "Mean": col_mean,
+                "Std": col_std,
+                "Top_Values": top_values_str,
+            }
+        )
 
     return pd.DataFrame(rows)
 
@@ -332,6 +343,7 @@ def profile(
 # ---------------------------------------------------------------------------
 # ContractSuite — batch contract runner for pipeline audit checkpoints
 # ---------------------------------------------------------------------------
+
 
 class ContractSuite:
     """Run multiple schema contracts in a single audit pass.
@@ -370,7 +382,7 @@ class ContractSuite:
         *,
         strict: bool = True,
         description: str = "",
-    ) -> "ContractSuite":
+    ) -> ContractSuite:
         """Register a schema contract with the suite.
 
         Args:
@@ -446,55 +458,67 @@ class ContractSuite:
             description = config["description"]
 
             if contract_id not in dataframes:
-                report_rows.append({
-                    "Suite": self.name,
-                    "Contract": contract_id,
-                    "Description": description,
-                    "Status": "SKIPPED",
-                    "Violation_Count": 0,
-                    "Violations": "",
-                })
+                report_rows.append(
+                    {
+                        "Suite": self.name,
+                        "Contract": contract_id,
+                        "Description": description,
+                        "Status": "SKIPPED",
+                        "Violation_Count": 0,
+                        "Violations": "",
+                    }
+                )
                 logger.warning(
                     "Suite '%s': contract '%s' skipped — no DataFrame provided.",
-                    self.name, contract_id,
+                    self.name,
+                    contract_id,
                 )
                 continue
 
             df = dataframes[contract_id]
             try:
                 expect_schema(df, schema, strict=True)
-                report_rows.append({
-                    "Suite": self.name,
-                    "Contract": contract_id,
-                    "Description": description,
-                    "Status": "PASS",
-                    "Violation_Count": 0,
-                    "Violations": "",
-                })
+                report_rows.append(
+                    {
+                        "Suite": self.name,
+                        "Contract": contract_id,
+                        "Description": description,
+                        "Status": "PASS",
+                        "Violation_Count": 0,
+                        "Violations": "",
+                    }
+                )
                 logger.info("Suite '%s': contract '%s' PASSED.", self.name, contract_id)
             except SchemaViolationError as exc:
                 status = "FAIL" if strict else "WARN"
-                report_rows.append({
-                    "Suite": self.name,
-                    "Contract": contract_id,
-                    "Description": description,
-                    "Status": status,
-                    "Violation_Count": len(exc.violations),
-                    "Violations": "\n".join(exc.violations),
-                })
+                report_rows.append(
+                    {
+                        "Suite": self.name,
+                        "Contract": contract_id,
+                        "Description": description,
+                        "Status": status,
+                        "Violation_Count": len(exc.violations),
+                        "Violations": "\n".join(exc.violations),
+                    }
+                )
                 logger.warning(
                     "Suite '%s': contract '%s' %s (%d violation(s)).",
-                    self.name, contract_id, status, len(exc.violations),
+                    self.name,
+                    contract_id,
+                    status,
+                    len(exc.violations),
                 )
             except TypeError as exc:
-                report_rows.append({
-                    "Suite": self.name,
-                    "Contract": contract_id,
-                    "Description": description,
-                    "Status": "ERROR",
-                    "Violation_Count": 0,
-                    "Violations": str(exc),
-                })
+                report_rows.append(
+                    {
+                        "Suite": self.name,
+                        "Contract": contract_id,
+                        "Description": description,
+                        "Status": "ERROR",
+                        "Violation_Count": 0,
+                        "Violations": str(exc),
+                    }
+                )
 
         result_df = pd.DataFrame(
             report_rows,

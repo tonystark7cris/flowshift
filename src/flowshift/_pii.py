@@ -19,8 +19,8 @@ from __future__ import annotations
 # Re-export everything the original module exposed, sourced from the
 # governance sub-package (single source of truth).
 from flowshift_governance.pii import (
-    PIIWarning,
     _DEFAULT_PATTERNS,
+    PIIWarning,
     scan_pii,
 )
 

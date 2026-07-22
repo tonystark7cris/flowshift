@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Callable, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 
 class BackendEngine(abc.ABC):
@@ -13,7 +14,7 @@ class BackendEngine(abc.ABC):
         """Name of the backend engine."""
         pass
 
-    def _log_operation(self, method: str, input_df: Any = None, output_df: Any = None) -> Any:
+    def _log_operation(self, method: str, input_df: Any = None, output_df: Any = None) -> Any:  # noqa: B027
         pass
 
     def _not_implemented(self, method_name: str) -> None:

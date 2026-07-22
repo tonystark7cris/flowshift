@@ -124,8 +124,8 @@ class TestFormula:
         # Tests the auto-backticking transpiler for spaces in column names
         df = pd.DataFrame({"Customer Name": ["Alice", "Bob"]})
         result = Preparation.formula(df, "IsAlice", "Customer Name == 'Alice'")
-        assert result["IsAlice"].iloc[0] == True
-        assert result["IsAlice"].iloc[1] == False
+        assert result["IsAlice"].iloc[0]
+        assert not result["IsAlice"].iloc[1]
 
 
 class TestSelect:

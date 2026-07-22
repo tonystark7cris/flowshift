@@ -108,12 +108,18 @@ _DEFAULT_PATTERNS: dict[str, dict[str, Any]] = {
     },
     "name_field": {
         "value_regex": None,  # Names can't be reliably detected by regex
-        "name_regex": r"(?i)^(first[\-_\s]?name|last[\-_\s]?name|full[\-_\s]?name|surname|given[\-_\s]?name|family[\-_\s]?name)$",
+        "name_regex": (
+            r"(?i)^(first[\-_\s]?name|last[\-_\s]?name|full[\-_\s]?name|"
+            r"surname|given[\-_\s]?name|family[\-_\s]?name)$"
+        ),
         "description": "Person name field",
     },
     "address": {
         "value_regex": None,
-        "name_regex": r"(?i)(street[\-_\s]?addr|address[\-_\s]?line|postal[\-_\s]?addr|home[\-_\s]?addr|mailing[\-_\s]?addr)",
+        "name_regex": (
+            r"(?i)(street[\-_\s]?addr|address[\-_\s]?line|postal[\-_\s]?addr|"
+            r"home[\-_\s]?addr|mailing[\-_\s]?addr)"
+        ),
         "description": "Physical address",
     },
 }
@@ -138,6 +144,7 @@ _PSEUDO_LABELS: dict[str, str] = {
 # ---------------------------------------------------------------------------
 # scan_pii
 # ---------------------------------------------------------------------------
+
 
 def scan_pii(
     df: pd.DataFrame,
@@ -192,14 +199,16 @@ def scan_pii(
 
             # --- Column name check ---
             if name_regex and re.search(name_regex, col):
-                findings.append({
-                    "Column": col,
-                    "PII_Type": pii_type,
-                    "Detection_Method": "column_name",
-                    "Confidence": "high",
-                    "Sample_Match": col,
-                    "Description": description,
-                })
+                findings.append(
+                    {
+                        "Column": col,
+                        "PII_Type": pii_type,
+                        "Detection_Method": "column_name",
+                        "Confidence": "high",
+                        "Sample_Match": col,
+                        "Description": description,
+                    }
+                )
                 continue  # Don't double-flag same column for same PII type
 
             # --- Value check (string columns only) ---
@@ -211,14 +220,16 @@ def scan_pii(
                 if not matches.empty:
                     match_pct = len(matches) / len(sample)
                     confidence = "high" if match_pct > 0.5 else "medium" if match_pct > 0.1 else "low"
-                    findings.append({
-                        "Column": col,
-                        "PII_Type": pii_type,
-                        "Detection_Method": "value_pattern",
-                        "Confidence": confidence,
-                        "Sample_Match": str(matches.iloc[0]),
-                        "Description": description,
-                    })
+                    findings.append(
+                        {
+                            "Column": col,
+                            "PII_Type": pii_type,
+                            "Detection_Method": "value_pattern",
+                            "Confidence": confidence,
+                            "Sample_Match": str(matches.iloc[0]),
+                            "Description": description,
+                        }
+                    )
 
     report = pd.DataFrame(
         findings,
@@ -228,10 +239,7 @@ def scan_pii(
     if warn and not report.empty:
         high_confidence = report[report["Confidence"].isin(["high", "medium"])]
         if not high_confidence.empty:
-            pii_summary = ", ".join(
-                f"{row['Column']} ({row['PII_Type']})"
-                for _, row in high_confidence.iterrows()
-            )
+            pii_summary = ", ".join(f"{row['Column']} ({row['PII_Type']})" for _, row in high_confidence.iterrows())
             warnings.warn(
                 f"Potential PII detected in {len(high_confidence)} column(s): {pii_summary}. "
                 f"Review with scan_pii() and apply masking before production use.",
@@ -250,6 +258,7 @@ def scan_pii(
 # ---------------------------------------------------------------------------
 # mask_pii  — the competitive differentiator vs Pandera / Great Expectations
 # ---------------------------------------------------------------------------
+
 
 def mask_pii(
     df: pd.DataFrame,
@@ -327,9 +336,7 @@ def mask_pii(
     else:
         if report.empty:
             return (df.copy(), {}) if strategy == "pseudonymise" else df.copy()
-        filtered = report[
-            report["Confidence"].map(lambda c: confidence_order.get(c, 0) >= min_level)
-        ]
+        filtered = report[report["Confidence"].map(lambda c: confidence_order.get(c, 0) >= min_level)]
         cols_to_mask = filtered["Column"].unique().tolist()
 
     result = df.copy()
@@ -350,9 +357,7 @@ def mask_pii(
     elif strategy == "hash":
         for col in cols_to_mask:
             if col in result.columns:
-                result[col] = result[col].apply(
-                    lambda v: _sha256_token(str(v), hash_length) if pd.notna(v) else v
-                )
+                result[col] = result[col].apply(lambda v: _sha256_token(str(v), hash_length) if pd.notna(v) else v)
         logger.info("Hashed %d column(s) (length=%d)", len(cols_to_mask), hash_length)
         return result
 
@@ -386,6 +391,7 @@ def mask_pii(
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _sha256_token(value: str, length: int = 12) -> str:
     """Return the first *length* hex chars of the SHA-256 digest of *value*."""

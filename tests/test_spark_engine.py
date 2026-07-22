@@ -1,16 +1,15 @@
 import pandas as pd
 import pytest
 
-from flowshift._config import get_engine, reset_backend, set_backend
 from flowshift import Developer, Join, Preparation, Transform
+from flowshift._config import get_engine, reset_backend, set_backend
 
 pytest.importorskip("pyspark")
 
-from pyspark.sql import SparkSession
-
-
 import os
 import sys
+
+from pyspark.sql import SparkSession
 
 os.environ["PYSPARK_PYTHON"] = sys.executable
 os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
@@ -127,8 +126,8 @@ def test_spark_spaces_in_columns(spark):
     df = spark.createDataFrame(pdf)
     result = Preparation.formula(df, "IsAlice", "Customer Name == 'Alice'")
     res = result.toPandas()
-    assert res["IsAlice"].iloc[0] == True
-    assert res["IsAlice"].iloc[1] == False
+    assert res["IsAlice"].iloc[0]
+    assert not res["IsAlice"].iloc[1]
 
 
 def test_spark_datatype_drift_coercion(spark):

@@ -27,6 +27,7 @@ Legal notice:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import logging
 import re
 import sys
@@ -66,6 +67,7 @@ def _attr(el, xpath: str, attr: str, default: str = "") -> str:
 
 
 # ---- Individual tool mappers -----------------------------------------------
+
 
 def _map_input(node_el) -> tuple[str, dict, list[str]]:
     cfg = _get_config(node_el)
@@ -129,8 +131,10 @@ def _map_sort(node_el) -> tuple[str, dict, list[str]]:
         return "Preparation.sort", {"columns": ["TODO_column"], "ascending": True}, notes
     return (
         "Preparation.sort",
-        {"columns": columns if len(columns) > 1 else columns[0],
-         "ascending": ascending if len(ascending) > 1 else ascending[0]},
+        {
+            "columns": columns if len(columns) > 1 else columns[0],
+            "ascending": ascending if len(ascending) > 1 else ascending[0],
+        },
         notes,
     )
 
@@ -194,8 +198,7 @@ def _map_formula(node_el) -> tuple[str, dict, list[str]]:
     if len(formulas) > 1:
         notes.append(
             f"ℹ This tool computes {len(formulas)} fields. Only the last is shown; "
-            "chain additional Preparation.formula steps for the others: "
-            + str([f[0] for f in formulas[:-1]])
+            "chain additional Preparation.formula steps for the others: " + str([f[0] for f in formulas[:-1]])
         )
 
     last_col, last_expr = formulas[-1]
@@ -208,9 +211,16 @@ def _map_summarize(node_el) -> tuple[str, dict, list[str]]:
     group_by: list[str] = []
     aggregations: dict[str, str] = {}
     _AGG_MAP = {
-        "Sum": "sum", "Avg": "mean", "Min": "min", "Max": "max",
-        "Count": "count", "First": "first", "Last": "last",
-        "CountNull": "count", "StdDev": "std", "Median": "median",
+        "Sum": "sum",
+        "Avg": "mean",
+        "Min": "min",
+        "Max": "max",
+        "Count": "count",
+        "First": "first",
+        "Last": "last",
+        "CountNull": "count",
+        "StdDev": "std",
+        "Median": "median",
     }
     if cfg is not None:
         for sf in cfg.findall("./SummarizeFields/SummarizeField"):
@@ -249,8 +259,7 @@ def _map_join(node_el) -> tuple[str, dict, list[str]]:
     else:
         notes.append("⚠ Join key columns not detected — set 'on', 'left_on', or 'right_on' manually.")
     notes.append(
-        "ℹ Join.join returns (left_unjoined, joined, right_unjoined). "
-        "Reference the joined anchor with '<step_id>.1'."
+        "ℹ Join.join returns (left_unjoined, joined, right_unjoined). Reference the joined anchor with '<step_id>.1'."
     )
     return "Join.join", args, notes
 
@@ -311,10 +320,8 @@ def _map_record_id(node_el) -> tuple[str, dict, list[str]]:
             args["column_name"] = col
         start_str = _text(cfg, "./StartValue")
         if start_str:
-            try:
+            with contextlib.suppress(ValueError):
                 args["start"] = int(start_str)
-            except ValueError:
-                pass
     return "Preparation.record_id", args, []
 
 
@@ -402,7 +409,9 @@ def _map_transpose(node_el) -> tuple[str, dict, list[str]]:
 
 
 def _map_text_input(node_el) -> tuple[str, dict, list[str]]:
-    notes = ["ℹ Text Input inline data is not extracted; replace with InOut.input_data or InOut.text_input with inline data."]
+    notes = [
+        "ℹ Text Input inline data is not extracted; replace with InOut.input_data or InOut.text_input with inline data."
+    ]
     return "InOut.text_input", {"data": {"TODO_column": ["TODO_value"]}}, notes
 
 
@@ -411,10 +420,7 @@ def _map_browse(node_el) -> tuple[str, dict, list[str]]:
 
 
 def _map_append_fields(node_el) -> tuple[str, dict, list[str]]:
-    notes = [
-        "ℹ Join.append_fields is a cross join. "
-        "Set 'left' and 'right' inputs referencing upstream step IDs."
-    ]
+    notes = ["ℹ Join.append_fields is a cross join. Set 'left' and 'right' inputs referencing upstream step IDs."]
     return "Join.append_fields", {}, notes
 
 
@@ -478,10 +484,17 @@ _PLUGIN_MAP: dict[str, callable] = {
     # Preparation
     "Filter": _map_filter,
     "Sort": _map_sort,
-    "Select": _map_select,
     "Formula": _map_formula,
-    "MultiFieldFormula": lambda n: ("Preparation.multi_field_formula", {"columns": ["TODO_column"], "expression": "TODO_expression"}, ["⚠ Set 'columns' and 'expression' manually."]),
-    "MultiRowFormula": lambda n: ("Preparation.multi_row_formula", {"column": "TODO_column", "expression": "TODO_expression"}, ["⚠ Set 'column' and 'expression' manually."]),
+    "MultiFieldFormula": lambda n: (
+        "Preparation.multi_field_formula",
+        {"columns": ["TODO_column"], "expression": "TODO_expression"},
+        ["⚠ Set 'columns' and 'expression' manually."],
+    ),
+    "MultiRowFormula": lambda n: (
+        "Preparation.multi_row_formula",
+        {"column": "TODO_column", "expression": "TODO_expression"},
+        ["⚠ Set 'column' and 'expression' manually."],
+    ),
     "Unique": _map_unique,
     "Sample": _map_sample,
     "RecordID": _map_record_id,
@@ -490,16 +503,32 @@ _PLUGIN_MAP: dict[str, callable] = {
     "Tile": _map_tile,
     "GenerateRows": _map_generate_rows,
     "AutoField": lambda n: ("Preparation.auto_field", {}, []),
-    "DateFilter": lambda n: ("Preparation.date_filter", {"column": "TODO_date_column"}, ["⚠ Set 'column', 'start_date', 'end_date' manually."]),
+    "DateFilter": lambda n: (
+        "Preparation.date_filter",
+        {"column": "TODO_date_column"},
+        ["⚠ Set 'column', 'start_date', 'end_date' manually."],
+    ),
     "Rank": lambda n: ("Preparation.rank", {"column": "TODO_column"}, ["⚠ Set 'column' manually."]),
-    "OversampleField": lambda n: ("Preparation.oversample_field", {"column": "TODO_column", "value": "TODO_value"}, ["⚠ Set 'column' and 'value' manually."]),
+    "OversampleField": lambda n: (
+        "Preparation.oversample_field",
+        {"column": "TODO_column", "value": "TODO_value"},
+        ["⚠ Set 'column' and 'value' manually."],
+    ),
     # Join / Blend
     "Join": _map_join,
     "Union": _map_union,
     "AppendFields": _map_append_fields,
-    "FindReplace": lambda n: ("Join.find_replace", {"find_col": "TODO_find_col", "replace_col": "TODO_replace_col"}, ["⚠ Set 'find_col' and 'replace_col' manually."]),
+    "FindReplace": lambda n: (
+        "Join.find_replace",
+        {"find_col": "TODO_find_col", "replace_col": "TODO_replace_col"},
+        ["⚠ Set 'find_col' and 'replace_col' manually."],
+    ),
     "FuzzyMatch": _map_fuzzy_match,
-    "MakeGroup": lambda n: ("Join.make_group", {"key1": "TODO_key1", "key2": "TODO_key2"}, ["⚠ Set 'key1' and 'key2' manually."]),
+    "MakeGroup": lambda n: (
+        "Join.make_group",
+        {"key1": "TODO_key1", "key2": "TODO_key2"},
+        ["⚠ Set 'key1' and 'key2' manually."],
+    ),
     # Transform
     "Summarize": _map_summarize,
     "Transpose": _map_transpose,
@@ -508,9 +537,21 @@ _PLUGIN_MAP: dict[str, callable] = {
     "CountRecords": lambda n: ("Transform.count_records", {}, []),
     # Parse
     "DateTime": lambda n: ("Parse.date_time", {"column": "TODO_column"}, ["⚠ Set 'column' manually."]),
-    "RegExTool": lambda n: ("Parse.regex_match", {"column": "TODO_column", "pattern": "TODO_pattern"}, ["⚠ Set 'column' and 'pattern' manually."]),
-    "TextToColumns": lambda n: ("Parse.text_to_columns", {"column": "TODO_column", "delimiter": ","}, ["⚠ Set 'column' and 'delimiter' manually."]),
-    "XmlParse": lambda n: ("Parse.xml_parse", {"column": "TODO_column", "xpath": "TODO_xpath"}, ["⚠ Set 'column' and 'xpath' manually."]),
+    "RegExTool": lambda n: (
+        "Parse.regex_match",
+        {"column": "TODO_column", "pattern": "TODO_pattern"},
+        ["⚠ Set 'column' and 'pattern' manually."],
+    ),
+    "TextToColumns": lambda n: (
+        "Parse.text_to_columns",
+        {"column": "TODO_column", "delimiter": ","},
+        ["⚠ Set 'column' and 'delimiter' manually."],
+    ),
+    "XmlParse": lambda n: (
+        "Parse.xml_parse",
+        {"column": "TODO_column", "xpath": "TODO_xpath"},
+        ["⚠ Set 'column' and 'xpath' manually."],
+    ),
 }
 
 
@@ -522,13 +563,16 @@ def _extract_plugin_short_name(plugin_str: str) -> str:
     parts = plugin_str.split(".")
     short = parts[-1] if parts else plugin_str
     # Dynamically strip any leading vendor prefix before standard tool names
-    short = re.sub(r"^[A-Z][a-z]+(?=(?:Select|Input|Output|Filter|Formula|Sort|Join|Union|Summarize|Transpose))", "", short)
+    short = re.sub(
+        r"^[A-Z][a-z]+(?=(?:Select|Input|Output|Filter|Formula|Sort|Join|Union|Summarize|Transpose))", "", short
+    )
     return short
 
 
 # ---------------------------------------------------------------------------
 # Expression translator (best-effort .yxmd formula → pandas query)
 # ---------------------------------------------------------------------------
+
 
 def _translate_yxmd_expression(expr: str) -> str:
     """Attempt a best-effort translation of a .yxmd formula expression.
@@ -553,18 +597,10 @@ def _translate_yxmd_expression(expr: str) -> str:
     result = result.replace("==", "==")
 
     # CONTAINS([Col], "val") → Col.str.contains("val")
-    result = re.sub(
-        r"CONTAINS\(\[(\w+)\],\s*\"([^\"]*)\"\)",
-        r'\1.str.contains("\2")',
-        result, flags=re.IGNORECASE
-    )
+    result = re.sub(r"CONTAINS\(\[(\w+)\],\s*\"([^\"]*)\"\)", r'\1.str.contains("\2")', result, flags=re.IGNORECASE)
 
     # STARTSWITH([Col], "val") → Col.str.startswith("val")
-    result = re.sub(
-        r"STARTSWITH\(\[(\w+)\],\s*\"([^\"]*)\"\)",
-        r'\1.str.startswith("\2")',
-        result, flags=re.IGNORECASE
-    )
+    result = re.sub(r"STARTSWITH\(\[(\w+)\],\s*\"([^\"]*)\"\)", r'\1.str.startswith("\2")', result, flags=re.IGNORECASE)
 
     # ISNULL([Col]) → Col.isnull()
     result = re.sub(r"ISNULL\(\[(\w+)\]\)", r"\1.isnull()", result, flags=re.IGNORECASE)
@@ -581,6 +617,7 @@ def _translate_yxmd_expression(expr: str) -> str:
 # ---------------------------------------------------------------------------
 # Type mapper
 # ---------------------------------------------------------------------------
+
 
 def _map_yxmd_type(yxmd_type: str) -> str | None:
     _TYPE_MAP = {
@@ -607,6 +644,7 @@ def _map_yxmd_type(yxmd_type: str) -> str | None:
 # Main converter class
 # ---------------------------------------------------------------------------
 
+
 class YxmdConverter:
     """Convert a .yxmd XML workflow file to a Flowshift YAML pipeline.
 
@@ -622,7 +660,7 @@ class YxmdConverter:
         self.source = Path(source)
         if not self.source.exists():
             raise FileNotFoundError(f"Source file not found: {self.source}")
-        self._nodes: dict[int, dict[str, Any]] = {}          # tool_id → node info
+        self._nodes: dict[int, dict[str, Any]] = {}  # tool_id → node info
         self._connections: list[tuple[int, str, int, str]] = []  # (from_id, from_port, to_id, to_port)
         self._warnings: list[str] = []
         self._parse()
@@ -637,8 +675,7 @@ class YxmdConverter:
             import defusedxml.ElementTree as ET
         except ImportError:
             raise ImportError(
-                "defusedxml is required for safe XML parsing of .yxmd files. "
-                "Install it with: pip install defusedxml"
+                "defusedxml is required for safe XML parsing of .yxmd files. Install it with: pip install defusedxml"
             ) from None
 
         try:
@@ -732,8 +769,7 @@ class YxmdConverter:
             if nid not in order:
                 order.append(nid)
                 self._warnings.append(
-                    f"⚠ Tool {nid} ({self._nodes[nid]['short_name']}) "
-                    "is in a cycle or disconnected — placed at end."
+                    f"⚠ Tool {nid} ({self._nodes[nid]['short_name']}) is in a cycle or disconnected — placed at end."
                 )
         return order
 
@@ -799,9 +835,7 @@ class YxmdConverter:
                     f"⚠ No mapping for plugin '{node['plugin']}'. "
                     "Replace with equivalent Flowshift tool or custom logic."
                 ]
-                self._warnings.append(
-                    f"Unmapped plugin '{short_name}' (ToolID {tool_id}) — manual step required."
-                )
+                self._warnings.append(f"Unmapped plugin '{short_name}' (ToolID {tool_id}) — manual step required.")
 
             # Build inputs section from upstream connections
             inputs: dict[str, str] = {}
@@ -913,15 +947,14 @@ class YxmdConverter:
         """Fraction of tools (0.0–1.0) that have a known Flowshift mapping."""
         if not self._nodes:
             return 1.0
-        mapped = sum(
-            1 for n in self._nodes.values() if n["short_name"] in _PLUGIN_MAP
-        )
+        mapped = sum(1 for n in self._nodes.values() if n["short_name"] in _PLUGIN_MAP)
         return mapped / len(self._nodes)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_output_ref(step_id: str, from_port: str) -> str:
     """Build a pipeline state reference string.
@@ -936,10 +969,15 @@ def _make_output_ref(step_id: str, from_port: str) -> str:
     - Duplicate / D → index 1
     """
     _PORT_INDEX = {
-        "T": "0", "F": "1",            # Filter
-        "L": "0", "J": "1", "R": "2",  # Join
-        "U": "0", "D": "1",            # Unique
-        "1": "0", "2": "1",            # numeric anchors
+        "T": "0",
+        "F": "1",  # Filter
+        "L": "0",
+        "J": "1",
+        "R": "2",  # Join
+        "U": "0",
+        "D": "1",  # Unique
+        "1": "0",
+        "2": "1",  # numeric anchors
     }
     idx = _PORT_INDEX.get(from_port.upper())
     if idx is not None:
@@ -969,6 +1007,7 @@ def _yaml_str(s: str) -> str:
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def convert_cli_main(args_list: list[str] | None = None) -> None:
     """CLI entrypoint for ``flowshift-convert``."""
     parser = argparse.ArgumentParser(
@@ -977,19 +1016,26 @@ def convert_cli_main(args_list: list[str] | None = None) -> None:
     )
     parser.add_argument("source", type=str, help="Path to the .yxmd workflow file.")
     parser.add_argument(
-        "-o", "--output", type=str, default=None,
+        "-o",
+        "--output",
+        type=str,
+        default=None,
         help="Output YAML path. If omitted, prints to stdout.",
     )
     parser.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="Preview the converted YAML without writing to disk.",
     )
     parser.add_argument(
-        "--summary", action="store_true",
+        "--summary",
+        action="store_true",
         help="Print a conversion summary (node count, coverage, warnings).",
     )
     parser.add_argument(
-        "-v", "--verbose", action="store_true",
+        "-v",
+        "--verbose",
+        action="store_true",
         help="Enable verbose logging.",
     )
 
@@ -1031,14 +1077,12 @@ def convert_cli_main(args_list: list[str] | None = None) -> None:
         converter.save(args.output)
         covered = int(converter.coverage * 100)
         print(
-            f"✅ Converted '{args.source}' → '{args.output}' "
-            f"({converter.node_count} tools, {covered}% mapped)",
+            f"✅ Converted '{args.source}' → '{args.output}' ({converter.node_count} tools, {covered}% mapped)",
             file=sys.stderr,
         )
         if converter.warnings:
             print(
-                f"⚠  {len(converter.warnings)} tools need manual review. "
-                "Search the output for 'TODO_'.",
+                f"⚠  {len(converter.warnings)} tools need manual review. Search the output for 'TODO_'.",
                 file=sys.stderr,
             )
     else:

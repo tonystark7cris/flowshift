@@ -9,20 +9,21 @@ from __future__ import annotations
 import difflib
 import json
 import logging
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from functools import reduce
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any
 
 import pandas as pd
 
 try:
-    from pyspark.sql import SparkSession
-    from pyspark.sql import DataFrame as SparkDataFrame
     import pyspark.sql.functions as F
-    from pyspark.sql.window import Window
-    from pyspark.sql.types import StringType, LongType, IntegerType, ShortType, ByteType, DoubleType
+    from pyspark.sql import DataFrame as SparkDataFrame
+    from pyspark.sql import SparkSession
     from pyspark.sql.functions import pandas_udf
+    from pyspark.sql.types import ByteType, DoubleType, IntegerType, LongType, ShortType, StringType
+    from pyspark.sql.window import Window
 except ImportError:
     # We allow importing this module so get_engine() can raise a clean error
     SparkSession = None
@@ -88,15 +89,18 @@ class SparkEngine(BackendEngine):
             log_data["input_schema_hash"] = hash(str(input_df.schema))
 
         # Auto-checkpointing logic
-        if output_df is not None and self.checkpoint_interval > 0:
-            if self._step_counter % self.checkpoint_interval == 0:
-                logger.info(f"Auto-checkpointing at step {self._step_counter} for {method}")
-                # Ensure checkpoint dir is set in SparkSession before calling this
-                try:
-                    output_df = output_df.checkpoint(eager=False)
-                    log_data["checkpointed"] = True
-                except Exception as e:
-                    logger.warning(f"Failed to auto-checkpoint: {e}")
+        if (
+            output_df is not None
+            and self.checkpoint_interval > 0
+            and self._step_counter % self.checkpoint_interval == 0
+        ):
+            logger.info(f"Auto-checkpointing at step {self._step_counter} for {method}")
+            # Ensure checkpoint dir is set in SparkSession before calling this
+            try:
+                output_df = output_df.checkpoint(eager=False)
+                log_data["checkpointed"] = True
+            except Exception as e:
+                logger.warning(f"Failed to auto-checkpoint: {e}")
 
         logger.debug(json.dumps(log_data))
         return output_df
@@ -126,7 +130,6 @@ class SparkEngine(BackendEngine):
     @staticmethod
     def _pandas_dtype_to_spark_type(dtype) -> str:
         """Map a pandas dtype to a Spark SQL type string for pandas_udf declarations."""
-        import numpy as np
 
         dtype_str = str(dtype)
         if "int" in dtype_str:
@@ -161,7 +164,7 @@ class SparkEngine(BackendEngine):
 
                 @pandas_udf("boolean")
                 def apply_condition(*cols: pd.Series) -> pd.Series:
-                    pdf = pd.DataFrame({c.name: s for c, s in zip(schema, cols)})
+                    pdf = pd.DataFrame({c.name: s for c, s in zip(schema, cols, strict=False)})
                     return condition(pdf)
 
                 cond_col = apply_condition(*[F.col(c) for c in df.columns])
@@ -199,9 +202,9 @@ class SparkEngine(BackendEngine):
             elif op == "does not contain":
                 mask_expr = ~col.contains(str(value))
             elif op == "is true":
-                mask_expr = col == True
+                mask_expr = col
             elif op == "is false":
-                mask_expr = col == False
+                mask_expr = not col
             else:
                 raise ValueError(f"Unsupported operator: {operator}")
 
@@ -234,7 +237,7 @@ class SparkEngine(BackendEngine):
 
             @pandas_udf(spark_return_type)
             def apply_expr(*cols: pd.Series) -> pd.Series:
-                pdf = pd.DataFrame({c.name: s for c, s in zip(schema, cols)})
+                pdf = pd.DataFrame({c.name: s for c, s in zip(schema, cols, strict=False)})
                 return expression(pdf)
 
             out = df.withColumn(column, apply_expr(*[F.col(c) for c in df.columns]))
@@ -333,7 +336,7 @@ class SparkEngine(BackendEngine):
             columns = [columns]
         if isinstance(ascending, bool):
             ascending = [ascending] * len(columns)
-        order = [F.col(c).asc() if a else F.col(c).desc() for c, a in zip(columns, ascending)]
+        order = [F.col(c).asc() if a else F.col(c).desc() for c, a in zip(columns, ascending, strict=False)]
         out = df.orderBy(*order)
         return self._log_operation("Preparation.sort", df, out)
 
@@ -349,7 +352,7 @@ class SparkEngine(BackendEngine):
         if ignore_case:
             compare_cols = [f"_fs_cmp_{c}" for c in columns]
             out = df
-            for c, cc in zip(columns, compare_cols):
+            for c, cc in zip(columns, compare_cols, strict=False):
                 out = out.withColumn(cc, F.lower(F.col(c)))
             w = Window.partitionBy(*compare_cols).orderBy(F.monotonically_increasing_id())
             out = out.withColumn("_fs_rn", F.row_number().over(w))
@@ -432,11 +435,11 @@ class SparkEngine(BackendEngine):
                 col_min = df.agg(F.min(field.name)).collect()[0][0]
                 col_max = df.agg(F.max(field.name)).collect()[0][0]
                 if col_min is not None and col_max is not None:
-                    if -128 <= col_min and col_max <= 127:
+                    if col_min >= -128 and col_max <= 127:
                         out = out.withColumn(field.name, F.col(field.name).cast(ByteType()))
-                    elif -32768 <= col_min and col_max <= 32767:
+                    elif col_min >= -32768 and col_max <= 32767:
                         out = out.withColumn(field.name, F.col(field.name).cast(ShortType()))
-                    elif -2147483648 <= col_min and col_max <= 2147483647:
+                    elif col_min >= -2147483648 and col_max <= 2147483647:
                         out = out.withColumn(field.name, F.col(field.name).cast(IntegerType()))
         return self._log_operation("Preparation.auto_field", df, out)
 
@@ -664,12 +667,12 @@ class SparkEngine(BackendEngine):
                 left_on = [left_on]
             if isinstance(right_on, str):
                 right_on = [right_on]
-            for l_key, r_key in zip(left_on, right_on):
+            for l_key, r_key in zip(left_on, right_on, strict=False):
                 left_type = dict(left.dtypes)[l_key]
                 right_type = dict(right.dtypes)[r_key]
                 if left_type != right_type:
                     right = right.withColumn(r_key, F.col(r_key).cast(left_type))
-            cond = [left[l] == right[r] for l, r in zip(left_on, right_on)]
+            cond = [left[lk] == right[rk] for lk, rk in zip(left_on, right_on, strict=False)]
             import operator
 
             join_cond = reduce(operator.and_, cond)
@@ -747,9 +750,10 @@ class SparkEngine(BackendEngine):
     ) -> SparkDataFrame:
         @pandas_udf("double")
         def match_score(left_col: pd.Series, right_col: pd.Series) -> pd.Series:
-            return pd.Series(
-                [difflib.SequenceMatcher(None, str(l), str(r)).ratio() for l, r in zip(left_col, right_col)]
-            )
+            scores = [
+                difflib.SequenceMatcher(None, str(x), str(y)).ratio() for x, y in zip(left_col, right_col, strict=False)
+            ]
+            return pd.Series(scores)
 
         crossed = left.crossJoin(F.broadcast(right))
         scored = crossed.withColumn(score_column, match_score(F.col(left_on), F.col(right_on)))
@@ -964,10 +968,13 @@ class SparkEngine(BackendEngine):
                 raise ValueError(f"Unsupported extension '{ext}' for Spark backend.")
         except Exception as e:
             if "HADOOP_HOME" in str(e) or "winutils" in str(e) or "java.io.FileNotFoundException" in str(e):
-                import warnings
                 import shutil
+                import warnings
 
-                warnings.warn(f"Hadoop binaries not found. Falling back to Pandas for local write to {path}.")
+                warnings.warn(
+                    f"Hadoop binaries not found. Falling back to Pandas for local write to {path}.",
+                    stacklevel=2,
+                )
 
                 # Spark creates an empty directory before failing. Remove it so Pandas can write a file.
                 if Path(path).is_dir():
@@ -991,9 +998,7 @@ class SparkEngine(BackendEngine):
         data: Any,
         columns: Sequence[str] | None = None,
     ) -> SparkDataFrame:
-        if isinstance(data, dict):
-            pdf = pd.DataFrame(data)
-        elif isinstance(data, list) and data and isinstance(data[0], dict):
+        if isinstance(data, dict) or isinstance(data, list) and data and isinstance(data[0], dict):
             pdf = pd.DataFrame(data)
         elif isinstance(data, list):
             if columns is None:
@@ -1264,7 +1269,7 @@ class SparkEngine(BackendEngine):
         out = df
 
         if mode == "mapping":
-            rename_map = dict(zip(pdf_rename[key_col], pdf_rename[new_name_col]))
+            rename_map = dict(zip(pdf_rename[key_col], pdf_rename[new_name_col], strict=False))
             for old, new in rename_map.items():
                 if old in df.columns:
                     out = out.withColumnRenamed(old, new)

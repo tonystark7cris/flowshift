@@ -13,12 +13,13 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-import defusedxml.ElementTree as ET  # XXE-safe XML parsing
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from functools import reduce
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any
 
+import defusedxml.ElementTree as ET  # XXE-safe XML parsing
 import pandas as pd
 
 from flowshift._validators import validate_columns, validate_dataframe
@@ -61,10 +62,7 @@ class PandasEngine(BackendEngine):
         validate_dataframe(df)
 
         if condition is not None:
-            if callable(condition):
-                mask = condition(df)
-            else:
-                mask = df.eval(condition)
+            mask = condition(df) if callable(condition) else df.eval(condition)
         elif column is not None and operator is not None:
             validate_columns(df, column)
             op = operator.lower().strip()
@@ -95,9 +93,9 @@ class PandasEngine(BackendEngine):
             elif op == "does not contain":
                 mask = ~series.astype(str).str.contains(str(value), regex=False, na=False)
             elif op == "is true":
-                mask = series == True
+                mask = series
             elif op == "is false":
-                mask = series == False
+                mask = not series
             else:
                 raise ValueError(f"Unsupported filter operator: {operator}")
         else:
@@ -552,7 +550,7 @@ class PandasEngine(BackendEngine):
         else:
             left_list = [left_on] if isinstance(left_on, str) else left_on
             right_list = [right_on] if isinstance(right_on, str) else right_on
-            for l_key, r_key in zip(left_list, right_list):
+            for l_key, r_key in zip(left_list, right_list, strict=False):
                 left_type = left[l_key].dtype
                 right_type = right[r_key].dtype
                 if left_type != right_type:
@@ -648,7 +646,7 @@ class PandasEngine(BackendEngine):
         validate_columns(df, target_col, "target_col")
 
         out = df.copy()
-        lookup = dict(zip(find_df[find_col], find_df[replace_col]))
+        lookup = dict(zip(find_df[find_col], find_df[replace_col], strict=False))
 
         if append:
             new_col = replace_col
@@ -656,7 +654,7 @@ class PandasEngine(BackendEngine):
                 new_col = f"{new_col}_found"
 
             if mode == "entire":
-                out[new_col] = out[target_col].map(lambda v: lookup.get(v, None))
+                out[new_col] = out[target_col].map(lambda v: lookup.get(v))
             elif mode == "partial":
                 out[new_col] = None
                 for find_val, replace_val in lookup.items():
@@ -1091,7 +1089,7 @@ class PandasEngine(BackendEngine):
                 raise ImportError(
                     f"Cloud path '{str_path}' requires the fsspec package. "
                     "Install cloud support with: pip install flowshift[cloud]"
-                )
+                ) from None
             # Extract extension from cloud path
             ext = "." + str_path.rsplit(".", 1)[-1].lower() if "." in str_path.split("/")[-1] else ""
             reader_name = _READERS.get(ext)
@@ -1165,9 +1163,7 @@ class PandasEngine(BackendEngine):
         data: dict[str, list] | list[dict] | list[list | tuple],
         columns: Sequence[str] | None = None,
     ) -> pd.DataFrame:
-        if isinstance(data, dict):
-            out = pd.DataFrame(data)
-        elif isinstance(data, list) and data and isinstance(data[0], dict):
+        if isinstance(data, dict) or isinstance(data, list) and data and isinstance(data[0], dict):
             out = pd.DataFrame(data)
         elif isinstance(data, list):
             if columns is None:
@@ -1483,7 +1479,6 @@ class PandasEngine(BackendEngine):
             query_string = urllib.parse.urlencode(params)
             url = f"{url}?{query_string}"
 
-        last_exception: Exception | None = None
         for attempt in range(1, max_retries + 1):
             try:
                 with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 # nosec B310
@@ -1493,7 +1488,6 @@ class PandasEngine(BackendEngine):
                     body = response.read().decode("utf-8")
                 break  # Success — exit retry loop
             except (urllib.error.URLError, TimeoutError, OSError) as e:
-                last_exception = e
                 if attempt < max_retries:
                     wait = retry_delay * (2 ** (attempt - 1))  # Exponential backoff
                     logger.warning(
@@ -1562,7 +1556,7 @@ class PandasEngine(BackendEngine):
         if mode == "mapping":
             validate_columns(rename_df, key_col, "key_col")
             validate_columns(rename_df, new_name_col, "new_name_col")
-            rename_map = dict(zip(rename_df[key_col], rename_df[new_name_col]))
+            rename_map = dict(zip(rename_df[key_col], rename_df[new_name_col], strict=False))
             out = df.rename(columns=rename_map)
         elif mode == "prefix":
             prefix = str(rename_df.iloc[0, 0])

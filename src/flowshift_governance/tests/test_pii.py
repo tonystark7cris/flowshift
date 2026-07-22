@@ -9,42 +9,48 @@ import pytest
 
 from flowshift_governance.pii import PIIWarning, _sha256_token, mask_pii, scan_pii
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def pii_df() -> pd.DataFrame:
     """DataFrame containing various PII types."""
-    return pd.DataFrame({
-        "email": ["alice@example.com", "bob@test.org", "charlie@corp.co"],
-        "Phone": ["+1-555-123-4567", "555.987.6543", "(800) 555-0199"],
-        "SSN": ["123-45-6789", "987-65-4321", "111-22-3333"],
-        "CreditCard": ["4111-1111-1111-1111", "5500-0000-0000-0004", "3782 822463 10005"],
-        "IP_Address": ["192.168.1.1", "10.0.0.255", "172.16.0.1"],
-        "Notes": ["Regular text", "Nothing sensitive", "Just some notes"],
-    })
+    return pd.DataFrame(
+        {
+            "email": ["alice@example.com", "bob@test.org", "charlie@corp.co"],
+            "Phone": ["+1-555-123-4567", "555.987.6543", "(800) 555-0199"],
+            "SSN": ["123-45-6789", "987-65-4321", "111-22-3333"],
+            "CreditCard": ["4111-1111-1111-1111", "5500-0000-0000-0004", "3782 822463 10005"],
+            "IP_Address": ["192.168.1.1", "10.0.0.255", "172.16.0.1"],
+            "Notes": ["Regular text", "Nothing sensitive", "Just some notes"],
+        }
+    )
 
 
 @pytest.fixture
 def clean_df() -> pd.DataFrame:
     """DataFrame with no PII."""
-    return pd.DataFrame({
-        "product_id": [101, 102, 103],
-        "quantity": [5, 10, 15],
-        "price": [29.99, 49.99, 9.99],
-        "category": ["Electronics", "Books", "Toys"],
-    })
+    return pd.DataFrame(
+        {
+            "product_id": [101, 102, 103],
+            "quantity": [5, 10, 15],
+            "price": [29.99, 49.99, 9.99],
+            "category": ["Electronics", "Books", "Toys"],
+        }
+    )
 
 
 @pytest.fixture
 def indian_pii_df() -> pd.DataFrame:
     """DataFrame with Indian PII (Aadhaar)."""
-    return pd.DataFrame({
-        "aadhaar": ["1234 5678 9012", "9876-5432-1098", "1111 2222 3333"],
-        "name": ["Rahul", "Priya", "Amit"],
-    })
+    return pd.DataFrame(
+        {
+            "aadhaar": ["1234 5678 9012", "9876-5432-1098", "1111 2222 3333"],
+            "name": ["Rahul", "Priya", "Amit"],
+        }
+    )
 
 
 @pytest.fixture
@@ -55,6 +61,7 @@ def pii_report(pii_df) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # scan_pii — detection tests (same as original)
 # ---------------------------------------------------------------------------
+
 
 class TestPIIDetection:
     def test_email_detected(self, pii_df):
@@ -89,11 +96,13 @@ class TestPIIDetection:
         assert len(aadhaar_hits) >= 1
 
     def test_column_name_detection(self):
-        df = pd.DataFrame({
-            "first_name": ["Alice"],
-            "last_name": ["Smith"],
-            "date_of_birth": ["1990-01-01"],
-        })
+        df = pd.DataFrame(
+            {
+                "first_name": ["Alice"],
+                "last_name": ["Smith"],
+                "date_of_birth": ["1990-01-01"],
+            }
+        )
         report = scan_pii(df, warn=False)
         detected_types = set(report["PII_Type"])
         assert "name_field" in detected_types
@@ -116,8 +125,7 @@ class TestPIIDetection:
     def test_numeric_columns_skipped(self, clean_df):
         report = scan_pii(clean_df, warn=False)
         numeric_value_hits = report[
-            report["Column"].isin(["product_id", "quantity", "price"])
-            & (report["Detection_Method"] == "value_pattern")
+            report["Column"].isin(["product_id", "quantity", "price"]) & (report["Detection_Method"] == "value_pattern")
         ]
         assert len(numeric_value_hits) == 0
 
@@ -154,15 +162,14 @@ class TestPIIDetection:
 # mask_pii — redact strategy
 # ---------------------------------------------------------------------------
 
+
 class TestMaskPiiRedact:
     def test_redact_replaces_pii_columns(self, pii_df, pii_report):
         masked = mask_pii(pii_df, pii_report, strategy="redact")
         pii_cols = pii_report["Column"].unique()
         for col in pii_cols:
             if col in masked.columns:
-                assert (masked[col] == "***REDACTED***").all(), (
-                    f"Column '{col}' not fully redacted"
-                )
+                assert (masked[col] == "***REDACTED***").all(), f"Column '{col}' not fully redacted"
 
     def test_redact_leaves_non_pii_columns_intact(self, pii_df, pii_report):
         masked = mask_pii(pii_df, pii_report, strategy="redact")
@@ -209,6 +216,7 @@ class TestMaskPiiRedact:
 # mask_pii — hash strategy
 # ---------------------------------------------------------------------------
 
+
 class TestMaskPiiHash:
     def test_hash_replaces_with_hex_string(self, pii_df, pii_report):
         masked = mask_pii(pii_df, pii_report, strategy="hash")
@@ -249,6 +257,7 @@ class TestMaskPiiHash:
 # mask_pii — pseudonymise strategy
 # ---------------------------------------------------------------------------
 
+
 class TestMaskPiiPseudonymise:
     def test_pseudonymise_returns_tuple(self, pii_df, pii_report):
         result = mask_pii(pii_df, pii_report, strategy="pseudonymise")
@@ -273,9 +282,11 @@ class TestMaskPiiPseudonymise:
 
     def test_pseudonymise_same_value_same_label(self, pii_report):
         """Duplicate values must get the same pseudo-label."""
-        df = pd.DataFrame({
-            "email": ["a@a.com", "b@b.com", "a@a.com"]  # first and last are the same
-        })
+        df = pd.DataFrame(
+            {
+                "email": ["a@a.com", "b@b.com", "a@a.com"]  # first and last are the same
+            }
+        )
         report = scan_pii(df, warn=False)
         masked_df, mapping = mask_pii(df, report, strategy="pseudonymise")
         assert masked_df["email"].iloc[0] == masked_df["email"].iloc[2]

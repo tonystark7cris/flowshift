@@ -1,3 +1,5 @@
+import os
+import sys
 import threading
 
 import pytest
@@ -5,9 +7,6 @@ import pytest
 import flowshift
 from flowshift._config import get_backend, get_engine, reset_backend, set_backend
 from flowshift.engines.pandas_engine import PandasEngine
-
-import os
-import sys
 
 # Windows PySpark local worker fix
 os.environ["PYSPARK_PYTHON"] = sys.executable

@@ -14,27 +14,24 @@ Run with:  pytest tests/test_assessment.py -v --tb=long
 
 from __future__ import annotations
 
-import math
 import os
 import tempfile
-import warnings
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
 
+import flowshift
 from flowshift import (
     Developer,
     InOut,
     Join,
     Parse,
+    Pipeline,
     Preparation,
     Transform,
-    Pipeline,
 )
-import flowshift
-
 
 # ====================================================================== #
 #  Shared fixtures
@@ -683,7 +680,7 @@ class TestSecurity:
         """Download should not hang indefinitely on unreachable URLs."""
         # We can't easily test real timeouts without network, but we verify
         # the function raises on invalid URLs rather than hanging
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match=r".+"):
             Developer.download("http://192.0.2.1:1/nonexistent")  # RFC 5737 test address
 
     def test_pipeline_tool_resolution_scoped(self) -> None:
@@ -780,12 +777,12 @@ class TestPackaging:
         assert len(flowshift.__version__) > 0
 
     def test_all_classes_importable(self) -> None:
-        from flowshift import InOut, Preparation, Join, Transform, Parse, Developer, Pipeline
+        from flowshift import Developer, InOut, Join, Parse, Pipeline, Preparation, Transform
 
         assert all([InOut, Preparation, Join, Transform, Parse, Developer, Pipeline])
 
     def test_backend_functions(self) -> None:
-        from flowshift import set_backend, get_backend, backend
+        from flowshift import get_backend, set_backend
 
         assert callable(set_backend)
         assert callable(get_backend)

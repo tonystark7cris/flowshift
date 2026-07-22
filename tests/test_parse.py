@@ -26,8 +26,8 @@ class TestRegexMatch:
 
     def test_email_pattern(self, sample_text_df: pd.DataFrame) -> None:
         result = Parse.regex_match(sample_text_df, "Email", r"^[\w.]+@[\w.]+$")
-        assert result["Match"].iloc[0] == True  # alice@example.com
-        assert result["Match"].iloc[2] == False  # invalid-email
+        assert result["Match"].iloc[0]  # alice@example.com
+        assert not result["Match"].iloc[2]  # invalid-email
 
 
 class TestRegexParse:

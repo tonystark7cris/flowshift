@@ -9,47 +9,54 @@ import pytest
 
 from flowshift._pii import PIIWarning, scan_pii
 
-
 # ------------------------------------------------------------------ #
 # Fixtures
 # ------------------------------------------------------------------ #
 
+
 @pytest.fixture
 def pii_df() -> pd.DataFrame:
     """DataFrame containing various PII types for testing."""
-    return pd.DataFrame({
-        "email": ["alice@example.com", "bob@test.org", "charlie@corp.co"],
-        "Phone": ["+1-555-123-4567", "555.987.6543", "(800) 555-0199"],
-        "SSN": ["123-45-6789", "987-65-4321", "111-22-3333"],
-        "CreditCard": ["4111-1111-1111-1111", "5500-0000-0000-0004", "3782 822463 10005"],
-        "IP_Address": ["192.168.1.1", "10.0.0.255", "172.16.0.1"],
-        "Notes": ["Regular text", "Nothing sensitive", "Just some notes"],
-    })
+    return pd.DataFrame(
+        {
+            "email": ["alice@example.com", "bob@test.org", "charlie@corp.co"],
+            "Phone": ["+1-555-123-4567", "555.987.6543", "(800) 555-0199"],
+            "SSN": ["123-45-6789", "987-65-4321", "111-22-3333"],
+            "CreditCard": ["4111-1111-1111-1111", "5500-0000-0000-0004", "3782 822463 10005"],
+            "IP_Address": ["192.168.1.1", "10.0.0.255", "172.16.0.1"],
+            "Notes": ["Regular text", "Nothing sensitive", "Just some notes"],
+        }
+    )
 
 
 @pytest.fixture
 def clean_df() -> pd.DataFrame:
     """DataFrame with no PII."""
-    return pd.DataFrame({
-        "product_id": [101, 102, 103],
-        "quantity": [5, 10, 15],
-        "price": [29.99, 49.99, 9.99],
-        "category": ["Electronics", "Books", "Toys"],
-    })
+    return pd.DataFrame(
+        {
+            "product_id": [101, 102, 103],
+            "quantity": [5, 10, 15],
+            "price": [29.99, 49.99, 9.99],
+            "category": ["Electronics", "Books", "Toys"],
+        }
+    )
 
 
 @pytest.fixture
 def indian_pii_df() -> pd.DataFrame:
     """DataFrame with Indian PII (Aadhaar)."""
-    return pd.DataFrame({
-        "aadhaar": ["1234 5678 9012", "9876-5432-1098", "1111 2222 3333"],
-        "name": ["Rahul", "Priya", "Amit"],
-    })
+    return pd.DataFrame(
+        {
+            "aadhaar": ["1234 5678 9012", "9876-5432-1098", "1111 2222 3333"],
+            "name": ["Rahul", "Priya", "Amit"],
+        }
+    )
 
 
 # ------------------------------------------------------------------ #
 # Detection tests
 # ------------------------------------------------------------------ #
+
 
 class TestPIIDetection:
     def test_email_detected(self, pii_df):
@@ -84,11 +91,13 @@ class TestPIIDetection:
         assert len(aadhaar_hits) >= 1
 
     def test_column_name_detection(self):
-        df = pd.DataFrame({
-            "first_name": ["Alice"],
-            "last_name": ["Smith"],
-            "date_of_birth": ["1990-01-01"],
-        })
+        df = pd.DataFrame(
+            {
+                "first_name": ["Alice"],
+                "last_name": ["Smith"],
+                "date_of_birth": ["1990-01-01"],
+            }
+        )
         report = scan_pii(df, warn=False)
         detected_types = set(report["PII_Type"])
         assert "name_field" in detected_types
@@ -105,6 +114,7 @@ class TestPIIDetection:
 # ------------------------------------------------------------------ #
 # Clean data tests (no false positives)
 # ------------------------------------------------------------------ #
+
 
 class TestCleanData:
     def test_no_pii_in_clean_data(self, clean_df):
@@ -127,6 +137,7 @@ class TestCleanData:
 # ------------------------------------------------------------------ #
 # Report format tests
 # ------------------------------------------------------------------ #
+
 
 class TestReportFormat:
     def test_report_columns(self, pii_df):
@@ -152,6 +163,7 @@ class TestReportFormat:
 # ------------------------------------------------------------------ #
 # Warning tests
 # ------------------------------------------------------------------ #
+
 
 class TestPIIWarning:
     def test_warning_emitted(self, pii_df):
@@ -179,6 +191,7 @@ class TestPIIWarning:
 # ------------------------------------------------------------------ #
 # Custom patterns
 # ------------------------------------------------------------------ #
+
 
 class TestCustomPatterns:
     def test_custom_pattern(self):
@@ -211,6 +224,7 @@ class TestCustomPatterns:
 # Error handling
 # ------------------------------------------------------------------ #
 
+
 class TestErrorHandling:
     def test_non_dataframe_raises(self):
         with pytest.raises(TypeError, match="Expected a pandas DataFrame"):
@@ -221,28 +235,34 @@ class TestErrorHandling:
 # Backward-compatibility shim tests
 # ------------------------------------------------------------------ #
 
+
 class TestBackwardCompatShim:
     """Verify that the flowshift.* import paths still work after the spinoff."""
 
     def test_scan_pii_importable_from_flowshift(self):
         from flowshift import scan_pii as sp
+
         assert callable(sp)
 
     def test_scan_pii_importable_from_flowshift_pii(self):
         from flowshift._pii import scan_pii as sp
+
         assert callable(sp)
 
     def test_pii_warning_importable_from_flowshift(self):
         from flowshift._pii import PIIWarning
+
         assert issubclass(PIIWarning, UserWarning)
 
     def test_shim_and_governance_are_same_function(self):
         from flowshift._pii import scan_pii as shim_fn
         from flowshift_governance.pii import scan_pii as gov_fn
+
         assert shim_fn is gov_fn
 
     def test_shim_scan_pii_works_end_to_end(self):
         from flowshift import scan_pii as sp
+
         df = pd.DataFrame({"email": ["test@example.com"]})
         report = sp(df, warn=False)
         assert len(report) >= 1

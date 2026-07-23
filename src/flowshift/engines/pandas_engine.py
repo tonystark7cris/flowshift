@@ -93,9 +93,9 @@ class PandasEngine(BackendEngine):
             elif op == "does not contain":
                 mask = ~series.astype(str).str.contains(str(value), regex=False, na=False)
             elif op == "is true":
-                mask = series
+                mask = series.eq(True)
             elif op == "is false":
-                mask = not series
+                mask = series.eq(False)
             else:
                 raise ValueError(f"Unsupported filter operator: {operator}")
         else:

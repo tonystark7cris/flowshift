@@ -202,9 +202,9 @@ class SparkEngine(BackendEngine):
             elif op == "does not contain":
                 mask_expr = ~col.contains(str(value))
             elif op == "is true":
-                mask_expr = col
+                mask_expr = col == True  # noqa: E712
             elif op == "is false":
-                mask_expr = not col
+                mask_expr = col == False  # noqa: E712
             else:
                 raise ValueError(f"Unsupported operator: {operator}")
 
@@ -389,10 +389,10 @@ class SparkEngine(BackendEngine):
         elif random:
             out = df.orderBy(F.rand(seed)).limit(n)
         elif position == "last":
-            # For massive datasets, counting is slow, but we need to get exact n from the end.
-            total = df.count()
-            w = Window.orderBy(F.monotonically_increasing_id())
-            out = df.withColumn("_rn", F.row_number().over(w)).filter(F.col("_rn") > total - n).drop("_rn")
+            # df.tail(n) is available since Spark 3.0 and avoids a full count() + sort.
+            # It collects the tail rows to the driver then re-distributes — acceptable for small n.
+            tail_rows = df.tail(n)
+            out = self.spark.createDataFrame(tail_rows, schema=df.schema)
         else:
             out = df.limit(n)
 
@@ -428,19 +428,31 @@ class SparkEngine(BackendEngine):
         return self._log_operation("Preparation.generate_rows", None, out)
 
     def auto_field(self, df: SparkDataFrame) -> SparkDataFrame:
-        # Spark schemas are strongly typed. We just apply minimal cast optimizations.
+        # Spark schemas are strongly typed. We apply minimal cast optimizations.
+        # Collect all LongType column stats in ONE Spark job instead of 2 jobs per column.
+        long_fields = [f for f in df.schema.fields if isinstance(f.dataType, LongType)]
         out = df
-        for field in df.schema.fields:
-            if isinstance(field.dataType, LongType):
-                col_min = df.agg(F.min(field.name)).collect()[0][0]
-                col_max = df.agg(F.max(field.name)).collect()[0][0]
-                if col_min is not None and col_max is not None:
-                    if col_min >= -128 and col_max <= 127:
-                        out = out.withColumn(field.name, F.col(field.name).cast(ByteType()))
-                    elif col_min >= -32768 and col_max <= 32767:
-                        out = out.withColumn(field.name, F.col(field.name).cast(ShortType()))
-                    elif col_min >= -2147483648 and col_max <= 2147483647:
-                        out = out.withColumn(field.name, F.col(field.name).cast(IntegerType()))
+        if not long_fields:
+            return self._log_operation("Preparation.auto_field", df, out)
+
+        agg_exprs = [
+            expr
+            for f in long_fields
+            for expr in (F.min(f.name).alias(f"_min_{f.name}"), F.max(f.name).alias(f"_max_{f.name}"))
+        ]
+        stats_row = df.agg(*agg_exprs).collect()[0]
+
+        for field in long_fields:
+            col_min = stats_row[f"_min_{field.name}"]
+            col_max = stats_row[f"_max_{field.name}"]
+            if col_min is not None and col_max is not None:
+                if col_min >= -128 and col_max <= 127:
+                    out = out.withColumn(field.name, F.col(field.name).cast(ByteType()))
+                elif col_min >= -32768 and col_max <= 32767:
+                    out = out.withColumn(field.name, F.col(field.name).cast(ShortType()))
+                elif col_min >= -2147483648 and col_max <= 2147483647:
+                    out = out.withColumn(field.name, F.col(field.name).cast(IntegerType()))
+
         return self._log_operation("Preparation.auto_field", df, out)
 
     def multi_field_formula(
@@ -1032,7 +1044,9 @@ class SparkEngine(BackendEngine):
         return self._log_operation("InOut.directory", None, out)
 
     def date_time_now(self) -> SparkDataFrame:
-        out = self.spark.createDataFrame([(datetime.now(),)], ["DateTime"])
+        # Use F.current_timestamp() instead of Python datetime.now() so the timestamp
+        # is generated cluster-side and is consistent across all Spark executors.
+        out = self.spark.range(1).select(F.current_timestamp().alias("DateTime"))
         return self._log_operation("InOut.date_time_now", None, out)
 
     # ================================================================== #
